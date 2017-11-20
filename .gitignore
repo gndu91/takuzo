@@ -5,3 +5,9 @@ application.linux64
 application.windows32
 application.windows64
 application.macosx
+G2DM3_GHOUL_Nadir/application.linux32/
+G2DM3_GHOUL_Nadir/application.linux64/
+G2DM3_GHOUL_Nadir/application.linux-arm64/
+G2DM3_GHOUL_Nadir/application.linux-armv6hf/
+G2DM3_GHOUL_Nadir/application.windows32/
+G2DM3_GHOUL_Nadir/application.windows64/
