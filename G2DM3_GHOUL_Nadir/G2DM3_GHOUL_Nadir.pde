@@ -2,20 +2,28 @@
   @author Ghoul Nadir
 */
 
+/**
+ *  Fonction chargée de l'allocation mémoire, d'après la documentation,
+ *      elle est appellée avant setup
+ *  
+ *  @see https://processing.org/reference/settings_.html
+ */
+void settings() {
+  init();
 
+}
 
 /**
   Fonction d'initialisation, elle sera appelée au début du programme
 */
 void setup() {
-  init();
+  
 }
 
 /**
   Fonction draw: appelée à intervalle régulier
 */
 void draw() {
-
 }
 
 /**
