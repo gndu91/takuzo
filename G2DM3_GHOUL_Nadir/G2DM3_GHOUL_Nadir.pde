@@ -98,18 +98,25 @@ int[][][] chargerGrilles() {
     ///    je vais donc stoquer la date dans une variable, au cas où.
     String name;  
 
+    /// Le stockage des tailles est utile pour les comparer
+    int taille_grille, taille_solution;
+
     if(fichier_grille.canRead() && fichier_solution.canRead()) {
       /// Lecture des lignes
+      lignes_grille = loadStrings(fichier_grille);
+      lignes_solution = loadStrings(fichier_solution);
       
-      
-      
-      /// Premièrement, on s'assure que les tailles indiquées sont les mêmes
-      
-      
+      /// S'assure que les fichiers soit biens lus
+      if((lignes_grille != null) && (lignes_solution != null)) {
+        /// On lis la premiere ligne
+        /// S'il y a un slash, alors le pre
+        name = lignes_grille[0].substring(lignes_grille[0].lastIndexOf('/'));
+        
+        /// Premièrement, on s'assure que les tailles indiquées sont les mêmes
+        
+      }
     }
-    
   }
-
 }
 /**
  * Servira à charger les variables/paramètres à partir du futur fichier de configuration
