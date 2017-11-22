@@ -12,7 +12,6 @@ void settings() {
   /// Le code qui suit servira à se placer dans le bon dossier, au lieu de démarrer dans le dossier d'installation de processing
   /// https://processing.github.io/processing-javadocs/core/
   String AppSketchPath = sketchPath();
-  String AppDataPath = dataPath("");
   if (System.setProperty("user.dir", AppSketchPath) == null) {
     throw new RuntimeException("Erreur, impossible de se placer dans le bon répertoire");
   }
@@ -43,20 +42,20 @@ void init() {
   }
 
   int[][][] grilles = chargerGrilles();
-  if (grilles == null) {
-    println("Waiting for the user");
+  for (int[][]l : grilles) {
+    for (int[]m : l) {
+      for (int n : m) {
+        print(n + ", ");
+      }
+      print(";");
+    }
+    println();
   }
-  while (grilles == null) {
-  }
-  for (int[][]l : grilles)
-    for (int[]m : l)
-      println(m);
 }
 
 /**
  *  Retourne une liste de matrices
  */
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 int[][][] chargerGrilles(String path, String prefix) {
   ///  Le tableau est déclaré ici, mais pour le momment, nous ne connaissons ni la taille de
@@ -67,12 +66,18 @@ int[][][] chargerGrilles(String path, String prefix) {
   int[][][] grilles;
 
   /// Je joins les deux dossiers
-  if(path != null && prefix != null && path.length() > 0 && prefix.length() > 0) {
+  if (path != null && prefix != null && path.length() > 0 && prefix.length() > 0) {
     prefix = path + ("/\\".contains(path.substring(path.length() - 1)) ? "\\" : "") + prefix;
-  } else if(prefix == null || prefix.length() == 0) {
+  } else if (prefix == null || prefix.length() == 0) {
     prefix = path;
   }
-  
+
+  ///  Pour une raison que j'ignore, File ne peut pas lire les fichiers ayant été défini par un
+  ///    chemin relatif, mais il peux donner leurs chemins absolu, des chemins qu'il pourra
+  ///    donc traiter.
+  prefix = new File(prefix).getAbsolutePath();
+
+
   String suffix_grille = ".tak";
   String suffix_solution = ".sol";
 
@@ -89,26 +94,21 @@ int[][][] chargerGrilles(String path, String prefix) {
   ///        pour ensuite recommencer, jusqu'à que la condition ne soit plus vérifiée
   for (int i = 1; (new File(prefix + i + suffix_grille)).canRead() && (new File(prefix + i + suffix_solution)).canRead(); index = (i++));
 
-  ///  Si nous ne trouvons aucun fichier, alors demander le dossier
-  if (index == 0) {
+  ///  Si nous ne trouvons pas assez de fichiers, alors demander le dossier
+  if (index < 5) {
     /// Afficher les fichiers, pour voir ce qui coince
-    for (int i = 1; i < 10; i++) {
+    for (int i = 1; i < 6; i++) {
+      File init = new File(prefix + i + suffix_grille), soluce = new File(prefix + i + suffix_solution);
+      init = (new File(init.getAbsolutePath()));
+      soluce = (new File(soluce.getAbsolutePath()));
       println();
-      println((new File(prefix + i + suffix_grille)).getAbsolutePath(), (new File(prefix + i + suffix_grille)).exists() ? "existe" : "n'existe pas");
-      println((new File(prefix + i + suffix_solution)).getAbsolutePath(), (new File(prefix + i + suffix_solution)).exists() ? "existe" : "n'existe pas");
+      println(init.getAbsolutePath(), init.exists() ? "existe" : "n'existe pas");
+      println(soluce.getAbsolutePath(), soluce.exists() ? "existe" : "n'existe pas");
       println();
-      println((new File(prefix + i + suffix_grille)).getAbsolutePath(), (new File(prefix + i + suffix_grille)).canRead() ? "peux" : "ne peut pas", "être lu");
-      println((new File(prefix + i + suffix_solution)).getAbsolutePath(), (new File(prefix + i + suffix_solution)).canRead() ? "peux" : "ne peut pas", "être lu");
+      println(init.getAbsolutePath(), init.canRead() ? "peut" : "ne peut pas", "être lu");
+      println(soluce.getAbsolutePath(), soluce.canRead() ? "peut" : "ne peut pas", "être lu");
     }
-    /// Nous allons cercher le parent, pour cela nous allons retirer le dernier / ou \ de prefix
-    prefix = prefix.contains("/") ? prefix.substring(0, prefix.lastIndexOf("/")) : prefix;
-    prefix = prefix.contains("\\") ? prefix.substring(0, prefix.lastIndexOf("\\")) : prefix;
-
-    File dossier = new File(prefix);
-    dossier = new File(new File(prefix + 1 + suffix_grille).getParent());
-    
-    selectFolder("Can you give me the folder?", "chargerGrilles", dossier, this);
-    return grilles = null;
+    throw new RuntimeException("Les grilles n'ont pas été trouvées, (prefix='" + prefix + "', suffix_solution='" + suffix_solution + "', suffix_grille='" + suffix_grille + "').");
   }
 
   ///  Maintenant, nous connaissons la taille de notre liste, mais pas encore la taille
@@ -120,9 +120,10 @@ int[][][] chargerGrilles(String path, String prefix) {
   ///    le "listing" des fichiers et le lecture de ceux-ci, pour l'instant, nous allons
   ///    nous contenter de les laisser à null (s'assurer qu'ils le soit)
   for (int i = 0; i < index; ++i) {
-    /// Nous allons commencer par la grille initiale
-    File fichier_grille = new File(prefix + i + suffix_grille);
-    File fichier_solution = new File(prefix + i + suffix_solution);
+    ///  Nous allons commencer par la grille initiale, en se rappelant que les fichiers
+    ///    commencent avec l'index 1
+    File fichier_grille = new File(prefix + (i + 1) + suffix_grille);
+    File fichier_solution = new File(prefix + (i + 1) + suffix_solution);
 
     /// Nous allons utiliser deux tableaux de chaines de charactères,
     ///    un pour la grille, un pour les solution
@@ -138,7 +139,15 @@ int[][][] chargerGrilles(String path, String prefix) {
     int taille_grille, taille_solution;
 
     /// Vérification peut-être superflue, mais on n'est jamais trop sûr
-    if (fichier_grille.canRead() && fichier_solution.canRead()) {
+    if (!fichier_grille.canRead() || !fichier_solution.canRead()) {
+      println();
+      println(fichier_grille.getAbsolutePath(), fichier_grille.exists() ? "existe" : "n'existe pas");
+      println(fichier_solution.getAbsolutePath(), fichier_solution.exists() ? "existe" : "n'existe pas");
+      println();
+      println(fichier_grille.getAbsolutePath(), fichier_grille.canRead() ? "peut" : "ne peut pas", "être lu");
+      println(fichier_solution.getAbsolutePath(), fichier_solution.canRead() ? "peut" : "ne peut pas", "être lu");
+      throw new RuntimeException("Les grilles ne sont pas lisibles");
+    } else {
       /// Lecture des lignes
       lignes_grille = loadStrings(fichier_grille);
       lignes_solution = loadStrings(fichier_solution);
@@ -150,14 +159,13 @@ int[][][] chargerGrilles(String path, String prefix) {
         ligne_solution = lignes_solution[0];
 
         ////////////////////////////////////////////////////////////////////////80 chars
-        ///  D'abord la solution, ce qui sera simple, vu que la première ligne
-        ///    ne contiendra que la taille de la grille 
-        ///  En cas de problème lié à un eventuel saut de ligne mal géré, par
-        ///    exemple \r\n ou un simple espace ajouté à droite ou à gauche
-        ///    de la taille, ce qui cause une erreur au niveau de la conversion
-        ///  J'ai trouvé la formule ici:
-        ///    https://en.wikipedia.org/wiki/Regular_expression#Character_classes
-        taille_solution = int(ligne_solution.replaceAll("\\p{Blank}", ""));
+        ///  D'abord la solution, ce qui sera simple, vu que je ne lirai que
+        ///    la taille de la grille, je prendrai tout ce qui se trouve
+        ///    avant le "//" s'il y en a un, et je supprimerai les espaces
+        ///    pour pouvoir convertir en int
+        taille_solution = int((ligne_solution.contains("//") ?
+          ligne_solution.substring(0, ligne_solution.indexOf("//")) :
+          ligne_solution).trim());
 
         ////////////////////////////////////////////////////////////////////////80 chars
         ///  Cette erreur n'est jamais censé se produire, c'est pour cela que
@@ -165,7 +173,8 @@ int[][][] chargerGrilles(String path, String prefix) {
         ///    est nécéssaire de revérifier si les fichiers n'ont pas d'erreurs
         if (taille_solution == 0) {
           throw new RuntimeException("Grille solution étonemment vide pour le fichier " +
-            fichier_solution.getAbsolutePath());
+            fichier_solution.getAbsolutePath()  + " (ligne:\"" +
+            ligne_solution.replaceAll("\\p{Blank}", "") + "\")");
         }
 
         ////////////////////////////////////////////////////////////////////////80 chars
@@ -180,7 +189,7 @@ int[][][] chargerGrilles(String path, String prefix) {
           ///    vaudra 1. Après avoir découpé la partie que nous souhaitons avoir,
           ///    nous allons supprimer les espaces, pour les raisons exprimées plus
           ///    tôt dans cette fonction.
-          taille_grille = int(ligne_grille.substring(0, slashIndex).replaceAll("\\p{Blank}", ""));
+          taille_grille = int(ligne_grille.substring(0, slashIndex).trim());
 
           //////////////////////////////////////////////////////////////////////80 chars
           ///  Nous allons prendre la seconde partie, pour cela, nous allons
@@ -196,7 +205,7 @@ int[][][] chargerGrilles(String path, String prefix) {
           name = "Grille n°" + i + " " + ligne_grille;
         } else {/// Sinon, cela signifie que la taille est la seule information disponible
           /// Voir précédente occurence de cette ligne, un peu plus tôt, dans le if
-          taille_grille = int(ligne_grille.substring(0, slashIndex).replaceAll("\\p{Blank}", ""));
+          taille_grille = int(ligne_grille.substring(0, slashIndex).trim());
           name = "Grille n°" + i;
         }
 
@@ -221,7 +230,7 @@ int[][][] chargerGrilles(String path, String prefix) {
 
           ///  On utilise la variable créée précédemment, et on s'assure
           ///    d'effacer tout les éventuels espaces
-          ligne_grille = lignes_grille[ligne].replaceAll("\\p{Blank}", "");
+          ligne_grille = lignes_grille[ligne].trim();
 
           /// Si la ligne a un nombre incorrect de symboles
           if (taille_grille != ligne_grille.length()) {
@@ -257,7 +266,7 @@ int[][][] chargerGrilles(String path, String prefix) {
         //////////////////////////////////////////////////////////////////////80 chars
         ///  On va ensuite faire de même pour la grille solution
         for (int ligne = 1; ligne < lignes_solution.length; ++ligne) {
-          ligne_solution = lignes_solution[ligne].replaceAll("\\p{Blank}", "");
+          ligne_solution = lignes_solution[ligne].trim();
           if (taille_grille != ligne_solution.length()) {
             throw new RuntimeException(
               "Inconsistence trouvé dans le fichier \"" +
