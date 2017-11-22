@@ -62,11 +62,21 @@ void init() {
  *    quand l'utilisateur aura commencé à modifier la grille
  */
 boolean[] modifiable(int[] grille){
-  boolean[] modifiable = new boolean[grille.length];
+  boolean[] retour = new boolean[grille.length];
   for(int i = 0; i < grille.length; ++i) {
-    modifiable[i] = grille[i] == 2;
+    retour[i] = grille[i] == 2;
   }
-  return modifiable;
+  return retour;
+}
+/**
+ *  Equivalent de la fonction précédente, optimisée pour 
+ */
+boolean[][] modifiable(int[][][] grilles) {
+  boolean[][] retour = new boolean[grilles.length][];
+  for(int i = 0; i < grilles.length; ++i) {
+    retour[i] = modifiable(grilles[i][0]);
+  }
+  return retour;
 }
 
 
