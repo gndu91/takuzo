@@ -1,6 +1,10 @@
 /**
  @author Ghoul Nadir
  */
+////////////////////////////////////////////////////////////////////////////////
+// Variables globales
+int[][][]   grilles;
+boolean[][] modifiable;
 
 /**
  *  Fonction chargée de l'allocation mémoire, d'après la documentation,
@@ -44,7 +48,8 @@ void init() {
     ///  saveConfig()
   }
 
-  int[][][] grilles = chargerGrilles();
+  grilles = chargerGrilles();
+  modifiable = modifiable(grilles);
   for (int[][]l : grilles) {
     for (int[]m : l) {
       for (int n : m) {
