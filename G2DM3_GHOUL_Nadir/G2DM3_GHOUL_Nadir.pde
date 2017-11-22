@@ -57,6 +57,20 @@ void init() {
 }
 
 /**
+ *  Retourne un tableau de boolean, qui va être utilisé pour savoir si nous pouvons
+ *    modifier une case, c'est à dire si la case vaut 2, ce tableau sera utile
+ *    quand l'utilisateur aura commencé à modifier la grille
+ */
+boolean[] modifiable(int[] grille){
+  boolean[] modifiable = new boolean[grille.length];
+  for(int i = 0; i < grille.length; ++i) {
+    modifiable[i] = grille[i] == 2;
+  }
+  return modifiable;
+}
+
+
+/**
  *  Retourne une liste de matrices
  */
 ////////////////////////////////////////////////////////////////////////////////////////////////////
