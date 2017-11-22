@@ -15,7 +15,7 @@ void settings() {
   if (System.setProperty("user.dir", AppSketchPath) == null) {
     throw new RuntimeException("Erreur, impossible de se placer dans le bon répertoire");
   }
-  println(AppSketchPath);
+  size(500, 500);
 }
 
 /**
@@ -23,6 +23,9 @@ void settings() {
  */
 void setup() {
   init();
+  /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
+  surface.setResizable(true);
+  surface.setTitle("Takuzo");
 }
 
 /**
