@@ -502,6 +502,37 @@ int[][][] chargerGrilles(File file, int[][][] target) {
 }
 
 
+
+int[] genererLigne(int l) {
+  int[] ligne = new int[l];
+  for(int i = 0; i < l; ++i) {
+    ligne[i] = 0;
+  }
+  return ligne;
+}
+
+
+int[] genererLigne(int l, int n) {
+  int[] ligne = new int[l];
+  for(int i = l; i > -1; --i) {
+    ligne[i] = n % 2;
+    n >>= 2;
+  }
+  return ligne;
+}
+
+int[] incrémenterLignee(int[] ligne) {
+  for(int i = ligne.length; i > -1; --i) {
+    if(ligne[i] == 0) {
+      ligne[i] = 1;
+      return ligne;
+    }
+    ligne[i] = 0;
+  }
+  return ligne;
+}
+
+
 /**
  * Servira à charger les variables/paramètres à partir du futur fichier de configuration
  */
