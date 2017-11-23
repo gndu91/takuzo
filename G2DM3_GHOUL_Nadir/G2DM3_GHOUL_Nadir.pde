@@ -39,6 +39,8 @@ void setup() {
   /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
   surface.setResizable(true);
   surface.setTitle("Takuzo");
+
+  function();
 }
 
 /**
@@ -46,6 +48,7 @@ void setup() {
  */
 void draw() {
   background(255);
+  update();
   afficherGrille();
 }
 
@@ -58,8 +61,8 @@ void init() {
     dimensionsGrilles = new float[4];
     dimensionsGrilles[0] = 0;
     dimensionsGrilles[1] = 0;
-    dimensionsGrilles[2] = 1;
-    dimensionsGrilles[3] = 1;
+    dimensionsGrilles[2] = 0.25;
+    dimensionsGrilles[3] = 0.25;
 
     cases = new PImage[5];
     int c = 16;
@@ -207,7 +210,7 @@ void keyPressed() {
         dimensionsGrilles[1] = _y;
         dimensionsGrilles[3] = h + (y - _y);
       }      
-      
+
       if (key == '9' || key == '6' || key == '3') {
         dimensionsGrilles[2] = _x - x;
       }
@@ -522,4 +525,146 @@ boolean loadConfig() {
   }
   /// TODO: Lire le fichier ici
   return false;
+}
+
+ArrayList<ArrayList<Integer>> lignesPossibles;
+
+
+void function() {
+  int taille = (int) sqrt(grilleCourante.length);
+
+  lignesPossibles = new ArrayList<ArrayList<Integer>>();
+  for (int i = 0; i < pow(2, taille); ++i) {
+
+    int[] t = creerLigne(taille, i);
+    if (correct(t)) {
+      lignesPossibles.add(convert(t));
+    }
+  }
+  for (int i = 0; i < taille; ++i) {
+    insert(creerLigne(taille), taille * i);
+  }
+  for (int i = 0; i < mCourante.length; ++i) {
+    mCourante[i] = true;
+  }
+}
+
+
+int indeeeeex = 0;
+ArrayList<ArrayList<ArrayList<Integer>>> matricePossibles;
+
+void update(int index) {
+  for (int prefix = 0; prefix < 2; prefix++) {
+    for (ArrayList<Integer> l : lignesPossibles) {
+      if (l.get(index) == prefix) {
+        for (ArrayList<Integer> t : lignesPossibles) {
+        }
+      }
+    }
+  }
+}
+
+void update() {
+  int nombre = 0;
+  int taille = (int) sqrt(grilleCourante.length);
+  int indexes[] = new int[taille];
+}
+
+
+void insert(int[] t, int pos) {
+  for (int i = 0; i + pos < grilleCourante.length && i < t.length; ++i) {
+    grilleCourante[pos + i] = t[i];
+  }
+}
+
+void insert(ArrayList<Integer> t, int pos) {
+  for (int i = 0; i + pos < grilleCourante.length && i < t.size(); ++i) {
+    grilleCourante[pos + i] = t.get(i);
+  }
+}
+
+int[] extract(int pos, int len) {
+  int[] t = new int[len];
+  for (int i = 0; i + pos < grilleCourante.length && i < t.length; ++i) {
+    t[i] = grilleCourante[pos + i];
+  }
+  return t;
+}
+
+int[] increment(int[] t) {
+  for (int i = t.length - 1; i > -1; --i) {
+    if (t[i] == 0) {
+      t[i] = 1;
+      return t;
+    }
+    t[i] = 0;
+  }
+  return t;
+}
+
+/// Crée une ligne de taille l
+int[] creerLigne(int l) {
+  int[] retour = new int[l];
+  for (int i = 0; i < retour.length; ++i) {
+    retour[i] = 0;
+  }
+  return retour;
+}
+
+ArrayList<Integer> convert(int[] t) {
+  ArrayList<Integer> list = new ArrayList<Integer>();
+  for (int i : t)list.add(i);
+  return list;
+}
+
+int[] convert(ArrayList<Integer> t) {
+  int[] list = new int[t.size()];
+  for (int i = 0; i < t.size(); ++i) {
+    list[i] = t.get(i);
+  }
+  return list;
+}
+
+/// TODO:Verification
+/// Crée une ligne de taille l et l'initialiser à n
+int[] creerLigne(int l, int n) {
+  int[] retour = new int[l];
+  for (int i = l - 1; i > -1; --i) {
+    retour[i] = n % 2;
+    n >>= 1;
+  }
+  return retour;
+}
+int decode(int[]t) {
+  int retour = 0;
+
+  for (int i = t.length - 1, x = 0; i > -1; --i, ++x) {
+    retour += t[i] << x;
+  }
+  return retour;
+}
+
+
+/// Vérifie si une ligne est considérée comme correcte
+boolean correct(int[] line) {
+  int nb0 = 0, nb1 = 0;
+  int nb0Alignes = 0, nb1alignes = 0;
+  for (int i : line) {
+    if (i == 0) {
+      nb0++;
+      nb1alignes = 0;
+      nb0Alignes++;
+      if (nb0Alignes > 2) {
+        return false;
+      }
+    } else if (i == 1) {
+      nb1++;
+      nb0Alignes = 0;
+      nb1alignes++;
+      if (nb1alignes > 2) {
+        return false;
+      }
+    } else throw new RuntimeException(i + " n'est pas binaire");
+  } /// for
+  return nb0 == nb1;
 }
