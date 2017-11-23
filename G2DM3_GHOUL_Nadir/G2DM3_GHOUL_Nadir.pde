@@ -6,6 +6,11 @@
 int[][][]   grilles;
 boolean[][] modifiable;
 
+/// Paramètres
+float[] dimensionsGrilles;
+// 0 Modifiable -> 0 Constant -> 1 Modifiable -> 1 constant -> Vide modifiable # -> Vide constant 
+PImage[] cases;
+
 /**
  *  Fonction chargée de l'allocation mémoire, d'après la documentation,
  *      elle est appellée avant setup
@@ -36,6 +41,8 @@ void setup() {
  Fonction draw: appelée à intervalle régulier
  */
 void draw() {
+  background(255);
+  afficherGrille(grilles[0][0], modifiable[0]);
 }
 
 /**
@@ -44,21 +51,76 @@ void draw() {
 void init() {
 
   if (!loadConfig()) {
+    dimensionsGrilles = new float[4];
+    dimensionsGrilles[0] = 0;
+    dimensionsGrilles[1] = 0;
+    dimensionsGrilles[2] = 1;
+    dimensionsGrilles[3] = 1;
+
+    cases = new PImage[5];
+    int c = 16;
+    cases[0] = createImage(c, c, ARGB);
+    for (int i = 0; i < cases[0].pixels.length; i++) {
+      cases[0].pixels[i] = color(127, 255, 0, 0);
+    }
+    cases[1] = createImage(c, c, ARGB);
+    for (int i = 0; i < cases[1].pixels.length; i++) {
+      cases[1].pixels[i] = color(255, 255, 0, 0);
+    }
+    cases[2] = createImage(c, c, ARGB);
+    for (int i = 0; i < cases[2].pixels.length; i++) {
+      cases[2].pixels[i] = color(127, 0, 255, 0);
+    }
+    cases[3] = createImage(c, c, ARGB);
+    for (int i = 0; i < cases[3].pixels.length; i++) {
+      cases[3].pixels[i] = color(255, 0, 255, 0);
+    }
+    cases[4] = createImage(c, c, ARGB);
+    for (int i = 0; i < cases[4].pixels.length; i++) {
+      cases[4].pixels[i] = color(127, 127, 127, 127);
+    }
+
     /// TODO: Initialiser les variables ici, puis
     ///  saveConfig()
   }
 
   grilles = chargerGrilles();
   modifiable = modifiable(grilles);
-  for (int[][]l : grilles) {
-    for (int[]m : l) {
-      for (int n : m) {
-        print(n + ", ");
-      }
-      print(";");
-    }
-    println();
+}
+
+/**
+ *  Affiche la matrice
+ *
+ *  @param dimensions: x, y, w, h: flottants entre 0 et 1
+ *  
+ *  TODO: Plusieurs layouts
+ */
+void afficherGrille(int[] grille, boolean[] modifiable, float[]dimensions, PImage[] images) {
+  int taille = (int) sqrt(grille.length);
+  if (taille*taille != grille.length) {
+    throw new RuntimeException("Grille non carrée");
   }
+  
+  float w = dimensions[2] * (width / taille);
+  float h = dimensions[3] * (height / taille);
+  
+  float x0 = dimensions[0] * width;
+  float y0 = dimensions[1] * height;
+  
+  for (int i = 0; i < taille; ++i)
+    for (int j = 0; j < taille; ++j) {
+      int index = i + (taille*j);
+      int etat = (grille[index] > 1 ? 4 : (grille[index]*2 + int(modifiable[index])));
+      float x = x0 + (i * w);
+      float y = y0 + (j * h);
+      fill(etat == 0 ? #990000 : etat == 1 ? #ff0000 : etat == 2 ? #009900 :
+        etat == 3 ? #00ff00 : #ffffff);
+      rect(x, y, w, h);
+    }
+}
+
+void afficherGrille(int[] grille, boolean[] modifiable) {
+  afficherGrille(grille, modifiable, dimensionsGrilles, cases);
 }
 
 /**
@@ -66,9 +128,9 @@ void init() {
  *    modifier une case, c'est à dire si la case vaut 2, ce tableau sera utile
  *    quand l'utilisateur aura commencé à modifier la grille
  */
-boolean[] modifiable(int[] grille){
+boolean[] modifiable(int[] grille) {
   boolean[] retour = new boolean[grille.length];
-  for(int i = 0; i < grille.length; ++i) {
+  for (int i = 0; i < grille.length; ++i) {
     retour[i] = grille[i] == 2;
   }
   return retour;
@@ -78,7 +140,7 @@ boolean[] modifiable(int[] grille){
  */
 boolean[][] modifiable(int[][][] grilles) {
   boolean[][] retour = new boolean[grilles.length][];
-  for(int i = 0; i < grilles.length; ++i) {
+  for (int i = 0; i < grilles.length; ++i) {
     retour[i] = modifiable(grilles[i][0]);
   }
   return retour;
