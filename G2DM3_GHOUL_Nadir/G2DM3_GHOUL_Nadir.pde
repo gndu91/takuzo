@@ -6,6 +6,10 @@
 int[][][]   grilles;
 boolean[][] modifiable;
 
+int[] grilleCourante;
+boolean[] mCourante;
+int indexCourant;
+
 /// Paramètres
 float[] dimensionsGrilles;
 // 0 Modifiable -> 0 Constant -> 1 Modifiable -> 1 constant -> Vide modifiable # -> Vide constant 
@@ -42,7 +46,7 @@ void setup() {
  */
 void draw() {
   background(255);
-  afficherGrille(grilles[0][0], modifiable[0]);
+  afficherGrille();
 }
 
 /**
@@ -86,6 +90,10 @@ void init() {
 
   grilles = chargerGrilles();
   modifiable = modifiable(grilles);
+
+  grilleCourante = grilles[0][0];
+  mCourante = modifiable[0];
+  indexCourant = 0;
 }
 
 /**
@@ -95,18 +103,18 @@ void init() {
  *  
  *  TODO: Plusieurs layouts
  */
-void afficherGrille(int[] grille, boolean[] modifiable, float[]dimensions, PImage[] images) {
+void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
   int taille = (int) sqrt(grille.length);
   if (taille*taille != grille.length) {
     throw new RuntimeException("Grille non carrée");
   }
-  
-  float w = dimensions[2] * (width / taille);
-  float h = dimensions[3] * (height / taille);
-  
-  float x0 = dimensions[0] * width;
-  float y0 = dimensions[1] * height;
-  
+
+  float w = dimensionsGrilles[2] * (width / taille);
+  float h = dimensionsGrilles[3] * (height / taille);
+
+  float x0 = dimensionsGrilles[0] * width;
+  float y0 = dimensionsGrilles[1] * height;
+
   for (int i = 0; i < taille; ++i)
     for (int j = 0; j < taille; ++j) {
       int index = i + (taille*j);
@@ -119,8 +127,102 @@ void afficherGrille(int[] grille, boolean[] modifiable, float[]dimensions, PImag
     }
 }
 
-void afficherGrille(int[] grille, boolean[] modifiable) {
-  afficherGrille(grille, modifiable, dimensionsGrilles, cases);
+
+void mousePressed() {
+  int taille = (int) sqrt(grilleCourante.length);
+
+  float w = dimensionsGrilles[2] * (width / taille);
+  float h = dimensionsGrilles[3] * (height / taille);
+
+  float x0 = dimensionsGrilles[0] * width;
+  float y0 = dimensionsGrilles[1] * height;
+
+  int i = (int) ((mouseX - x0) / w);
+  int j = (int) ((mouseY - y0) / h);
+
+  int index = i + (taille * j);
+
+  if (i > -1 && i < taille) {
+    if (j > -1 && j < taille) {
+      if (mCourante[index]) {
+        grilleCourante[index] = (grilleCourante[index] + 1) % 3;
+      }
+      println(i, j);
+    }
+  }
+}
+
+void keyPressed() {
+  if (key == BACKSPACE) {
+    for (int i = 0; i < mCourante.length; ++i) {
+      if (mCourante[i]) {
+        grilleCourante[i] = 2;
+      }
+    }
+  } else if (key == ENTER) {
+    indexCourant = (indexCourant + 1) % grilles.length;
+    /// TODO: Vérifier l'égalité des tailles
+    grilleCourante = grilles[indexCourant][0];
+    mCourante = modifiable[indexCourant];
+  } else if (key == TAB) {
+    /*/// Ajout d'une case dans les deux tableaux
+     int ancienIndex = indexCourant;
+     indexCourant = modifiable.length;
+     
+     grilles = (int[][][]) expand(grilles, grilles.length + 1);
+     modifiable = (boolean[][]) expand(modifiable, modifiable.length + 1);
+     
+     grilles[indexCourant] = new int[2][];
+     grilles[indexCourant][1] = new int[grilles[ancienIndex][1].length];
+     grilles[indexCourant][0] = new int[grilles[ancienIndex][0].length];
+     for(int i = 0; i < grilles[ancienIndex][1].length; ++i) {
+     grilles[indexCourant][1][i] = grilles[ancienIndex][1][i];
+     grilles[indexCourant][0][i] = grilles[ancienIndex][1][i];
+     }
+     
+     modifiable[indexCourant] = new boolean[modifiable[ancienIndex].length];
+     for(int i = 0; i < modifiable[ancienIndex].length; ++i) {
+     modifiable[indexCourant][i] = modifiable[ancienIndex][i];
+     }
+     */
+    grilleCourante = grilles[indexCourant][1];
+    //mCourante = modifiable[indexCourant];
+  } else {
+    if (key >= '1' && key <= '9') {
+      float x, y, w, h, _x, _y;
+
+      x = dimensionsGrilles[0];
+      y = dimensionsGrilles[1];
+      w = dimensionsGrilles[2];
+      h = dimensionsGrilles[3];
+
+      _x = ((float) (mouseX)) / width;
+      _y = ((float) (mouseY)) / height;
+
+      if (key == '1' || key == '4' || key == '7') {
+        dimensionsGrilles[0] = _x;
+        dimensionsGrilles[2] = w + (x - _x);
+      }
+      if (key == '7' || key == '8' || key == '9') {
+        dimensionsGrilles[1] = _y;
+        dimensionsGrilles[3] = h + (y - _y);
+      }      
+      
+      if (key == '9' || key == '6' || key == '3') {
+        dimensionsGrilles[2] = _x - x;
+      }
+      if (key == '3' || key == '2' || key == '1') {
+        dimensionsGrilles[3] = _y - y;
+      }
+    }
+    if (key == '7') {
+    }
+  }
+}
+
+
+void afficherGrille() {
+  afficherGrille(grilleCourante, mCourante, cases);
 }
 
 /**
