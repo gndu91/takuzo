@@ -1,52 +1,39 @@
-boolean lineIsCorrect(ArrayList<Integer> line) {
-  if (java.util.Collections.frequency(line, 0) != java.util.Collections.frequency(line, 1)) {
-    return false;
-  }
-  int _0 = 0, _1 = 0;
-  for (int i = 0; i < line.size(); ++i) {
-    if (line.get(i) == 0) {
+boolean lineIsCorrect(char[] line) {
+  /// State: 0->0; 1->1; 2->00; 3->11; 4->.
+  char state = 4, _0 = 0, _1 = 0;
+  for (int i = 0; i < line.length; ++i) {
+    if (line[i] == 0) {
       _0++;
-      _1 = 0;
-      if (_0 > 2) {
-        return false;
-      }
     } else {
       _1++;
-      _0 = 0;
-      if (_1 > 2) {
-        return false;
-      }
+    }
+    /// If neutral state or different state
+    if (state == 4 || (state & 1) != (line[i] & 1))
+      state = line[i];
+    else if ((state += 2) > 3) {
+      /// Go from 0 to 2 or 1 to 3
+      return false;
     }
   }
-  return true;
+  return _0 == _1;
 }
 
-ArrayList<Integer> newLine(int number, int len) {
-
-  ArrayList<Integer> line = new ArrayList<Integer>(len);
-
-
+char[] newLine(int number, int len) {
+  char[] line = new char[len];
   for (int i = len - 1; i > -1; --i) {
-    line.add(0);
-  }
-
-  for (int i = len - 1; i > -1; --i) {
-    line.set(i, number % 2);
+    line[i] = (char) (number % 2);
     number >>= 1;
   }
   return line;
 }
 
-ArrayList<ArrayList<Integer>> getAllCorrectOnes(int length) {
-  ArrayList<ArrayList<Integer>> output = new ArrayList<ArrayList<Integer>>();
-
+ArrayList<char[]> getAllCorrectOnes(int length) {
+  ArrayList<char[]> output = new ArrayList<char[]>();
   for (int i = 0; i < pow(2, length); ++i) {
-    ArrayList<Integer> line = newLine(i, length);
-    if (lineIsCorrect(line)) {
+    char[] line = newLine(i, length);
+    if (lineIsCorrect(line))
       output.add(line);
-    }
   }
-
   return output;
 }
 
@@ -71,19 +58,18 @@ boolean n(int[] streak, ArrayList<Integer> _list) {
 void setup() {
   int _gridSize = 8;
 
-  ArrayList<ArrayList<ArrayList<Integer>>> matrixes;
-  matrixes = new ArrayList<ArrayList<ArrayList<Integer>>>();
+  ArrayList<ArrayList<char[]>> matrixes;
+  matrixes = new ArrayList<ArrayList<char[]>>();
 
-  final ArrayList<ArrayList<Integer>> _everyPossibilities = getAllCorrectOnes(_gridSize);
+  final ArrayList<char[]> _everyPossibilities = getAllCorrectOnes(_gridSize);
 
-  for (final ArrayList<Integer>_reference : _everyPossibilities) {
+  for (final char[] _reference : _everyPossibilities) {
     //////////////////////////////////////////////////////////////////////
-    ArrayList<ArrayList<ArrayList<Integer>>> 
-      possibilities = new ArrayList<ArrayList<ArrayList<Integer>>>();
+    ArrayList<ArrayList<char[]>> possibilities = new ArrayList<ArrayList<char[]>>();
     for (int i : _reference) {
       possibilities.add(new ArrayList());
-      for (final ArrayList<Integer>j : _everyPossibilities) {
-        if (i == j.get(0)) {
+      for (final char[] j : _everyPossibilities) {
+        if (i == j[0]) {
           possibilities.get(possibilities.size() - 1).add(j);
         }
       }
@@ -95,9 +81,9 @@ void setup() {
   println(matrixes, _everyPossibilities.size());
 }
 void f(
-  final ArrayList<ArrayList<ArrayList<Integer>>> possibilities, 
-  ArrayList<ArrayList<ArrayList<Integer>>> matrixes, 
-  final ArrayList<ArrayList<Integer>> partial, 
+  final ArrayList<ArrayList<char[]>> possibilities, 
+  ArrayList<ArrayList<char[]>> matrixes, 
+  final ArrayList<char[]> partial, 
   final int[] _0_streaks, 
   final int[] _1_streaks, 
   final int _gridSize) {
@@ -106,11 +92,11 @@ void f(
   /// Check streaks and divide
 
   if (partial.size() < _gridSize) {
-    for (ArrayList<Integer> _next : possibilities.get(partial.size())) {
+    for (char[] _next : possibilities.get(partial.size())) {
       int[] __0_streaks = new int[_gridSize], __1_streaks = new int[_gridSize]; 
       boolean var = true;/// Wether 3 streaks
       for (int i = 0; i < _gridSize; ++i) {
-        if (_next.get(i) == 0) {
+        if (_next[i] == 0) {
           __0_streaks[i] = _0_streaks[i] + 1;
           __1_streaks[i] = 0;
           var = __0_streaks[i] < 3;
@@ -121,22 +107,19 @@ void f(
         }
       }
       if (var && !partial.contains(_next)) {
-        ArrayList<ArrayList<Integer>> _partial = new ArrayList(partial);
+        ArrayList<char[]> _partial = new ArrayList(partial);
         _partial.add(_next);
         f(possibilities, matrixes, _partial, __0_streaks, __1_streaks, _gridSize);
       }
     }
   } else {
-    ArrayList<ArrayList<Integer>> columns = new ArrayList<ArrayList<Integer>>();
+    ArrayList<char[]> columns = new ArrayList<char[]>();
     for (int i = 0; i < _gridSize; ++i) {
-      columns.add(new ArrayList<Integer>());
-      for (int j = 0; j < _gridSize; ++j) {
-        columns.get(i).add(0);
-      }
+      columns.add(new char[_gridSize]);
     }
     for (int i = 0; i < _gridSize; ++i) {
       for (int j = 0; j < _gridSize; ++j) {
-        columns.get(j).set(i, partial.get(i).get(j));
+        columns.get(j)[i] = partial.get(i)[j];
       }
     }
     boolean cool = true;
@@ -145,8 +128,8 @@ void f(
         cool = false;
       }
     }
-    for(int i = 0; i < _gridSize; ++i) {
-      if(java.util.Collections.frequency(columns, columns.get(i)) > 1) {
+    for (int i = 0; i < _gridSize; ++i) {
+      if (java.util.Collections.frequency(columns, columns.get(i)) > 1) {
         cool = false;
       }
     }
@@ -157,9 +140,9 @@ void f(
       try {
         f = new java.io.FileWriter("i:\\x\\" + matrixes.size() + ".txt");
         f.write(_gridSize + " // Autogenerated\n");
-        for (ArrayList<Integer>l : partial) {
-          for (Integer i : l) {
-            f.write(str(i));
+        for (char[]l : partial) {
+          for (char i : l) {
+            f.write('0' +(i));
           }
           f.write("\n");
         }
@@ -179,8 +162,8 @@ void f(
     }
   }
 }
-void f(ArrayList<ArrayList<ArrayList<Integer>>> possibilities, 
-  ArrayList<ArrayList<ArrayList<Integer>>> matrixes, int _gridSize) {
-  f(possibilities, matrixes, new ArrayList<ArrayList<Integer>>(),
+void f(ArrayList<ArrayList<char[]>> possibilities, 
+  ArrayList<ArrayList<char[]>> matrixes, int _gridSize) {
+  f(possibilities, matrixes, new ArrayList<char[]>(), 
     new int[_gridSize], new int[_gridSize], _gridSize);
 }
