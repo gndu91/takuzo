@@ -56,10 +56,10 @@ boolean n(int[] streak, ArrayList<Integer> _list) {
 }
 
 void setup() {
-  int _gridSize = 4;
+  int _gridSize = 8;
 
-  ArrayList<ArrayList<char[]>> matrixes;
-  matrixes = new ArrayList<ArrayList<char[]>>();
+  ArrayList<char[][]> matrixes;
+  matrixes = new ArrayList<char[][]>();
 
   final ArrayList<char[]> _everyPossibilities = getAllCorrectOnes(_gridSize);
 
@@ -83,16 +83,19 @@ void setup() {
 
 void f(
   final ArrayList<ArrayList<char[]>> possibilities, 
-  ArrayList<ArrayList<char[]>> matrixes, 
-  final ArrayList<char[]> partial, 
+  ArrayList<char[][]> matrixes, 
+  char[][] partial, 
   final char[] _state, 
-  final int _gridSize) {
+  final int _gridSize,
+  final int length,
+  ArrayList<Integer> indexes) {
 
   /// Streaks: + for 1 and - for 0
   /// Check streaks and divide
 
-  if (partial.size() < _gridSize) {
-    for (char[] _next : possibilities.get(partial.size())) {
+  if (length < _gridSize) {
+    for (int _next_index = 0; _next_index < possibilities.get(length).size(); ++_next_index) {
+      char[] _next = possibilities.get(length).get(_next_index);
       char[] _new_state = new char[_gridSize];
       boolean var = true;/// Wether 3 streaks
       for (int i = 0; i < _gridSize; ++i) {
@@ -104,20 +107,20 @@ void f(
           var = false;
         }
       }
-      if (var && !partial.contains(_next)) {
-        ArrayList<char[]> _partial = new ArrayList(partial);
-        _partial.add(_next);
-        f(possibilities, matrixes, _partial, _state, _gridSize);
+      if (var && !indexes.contains(_next_index)) {
+        partial[length]  = _next;
+        f(possibilities, matrixes, partial, _state, _gridSize, length + 1, indexes);
       }
     }
   } else {
+    /// frequency is for ArrayList
     ArrayList<char[]> columns = new ArrayList<char[]>();
     for (int i = 0; i < _gridSize; ++i) {
       columns.add(new char[_gridSize]);
     }
     for (int i = 0; i < _gridSize; ++i) {
       for (int j = 0; j < _gridSize; ++j) {
-        columns.get(j)[i] = partial.get(i)[j];
+        columns.get(j)[i] = partial[i][j];
       }
     }
     boolean cool = true;
@@ -161,10 +164,10 @@ void f(
   }
 }
 
-void f(ArrayList<ArrayList<char[]>> possibilities, ArrayList<ArrayList<char[]>> matrixes, int _gridSize) {
+void f(ArrayList<ArrayList<char[]>> possibilities, ArrayList<char[][]> matrixes, int _gridSize) {
   char[] states = new char[_gridSize];
   for (int i = 0; i< states.length; ++i) {
     states[i] = 4;
   }
-  f(possibilities, matrixes, new ArrayList<char[]>(), states, _gridSize);
+  f(possibilities, matrixes, new char[_gridSize][_gridSize], states, _gridSize, 0, new ArrayList<Integer>(_gridSize));
 }
