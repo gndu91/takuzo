@@ -1,15 +1,15 @@
-boolean lineIsCorrect(boolean[] line) {
+boolean lineIsCorrect(char[] line) {
   /// State: 0->0; 1->1; 2->00; 3->11; 4->.
   char state = 4, _0 = 0, _1 = 0;
   for (int i = 0; i < line.length; ++i) {
-    if (line[i]) {
-      _1++;
-    } else {
+    if (line[i] == 0) {
       _0++;
+    } else {
+      _1++;
     }
     /// If neutral state or different state
-    if (state == 4 || ((state & 1) != 0) != line[i])
-        state = (char) (line[i] ? 1 : 0);
+    if (state == 4 || (state & 1) != (line[i] & 1))
+      state = line[i];
     else if ((state += 2) > 3) {
       /// Go from 0 to 2 or 1 to 3
       return false;
@@ -18,40 +18,19 @@ boolean lineIsCorrect(boolean[] line) {
   return _0 == _1;
 }
 
-/// long -> 64bits
-boolean lineIsCorrect(long line) {
-  /// State: 0->0; 1->1; 2->00; 3->11; 4->.
-  char state = 4, _0 = 0, _1 = 0;
-  for (int i = 0; i < line.length; ++i) {
-    if (line[i]) {
-      _1++;
-    } else {
-      _0++;
-    }
-    /// If neutral state or different state
-    if (state == 4 || ((state & 1) != 0) != line[i])
-        state = (char) (line[i] ? 1 : 0);
-    else if ((state += 2) > 3) {
-      /// Go from 0 to 2 or 1 to 3
-      return false;
-    }
-  }
-  return _0 == _1;
-}
-
-boolean[] newLine(int number, int len) {
-  boolean[] line = new boolean[len];
+char[] newLine(int number, int len) {
+  char[] line = new char[len];
   for (int i = len - 1; i > -1; --i) {
-    line[i] = number % 2 != 0;
+    line[i] = (char) (number % 2);
     number >>= 1;
   }
   return line;
 }
 
-ArrayList<boolean[]> getAllCorrectOnes(int length) {
-  ArrayList<boolean[]> output = new ArrayList<boolean[]>();
+ArrayList<char[]> getAllCorrectOnes(int length) {
+  ArrayList<char[]> output = new ArrayList<char[]>();
   for (int i = 0; i < pow(2, length); ++i) {
-    boolean[] line = newLine(i, length);
+    char[] line = newLine(i, length);
     if (lineIsCorrect(line))
       output.add(line);
   }
@@ -79,17 +58,17 @@ boolean n(int[] streak, ArrayList<Integer> _list) {
 void setup() {
   int _gridSize = 8;
 
-  ArrayList<boolean[][]> matrixes;
-  matrixes = new ArrayList<boolean[][]>();
+  ArrayList<char[][]> matrixes;
+  matrixes = new ArrayList<char[][]>();
 
-  final ArrayList<boolean[]> _everyPossibilities = getAllCorrectOnes(_gridSize);
+  final ArrayList<char[]> _everyPossibilities = getAllCorrectOnes(_gridSize);
 
-  for (final boolean[] _reference : _everyPossibilities) {
+  for (final char[] _reference : _everyPossibilities) {
     //////////////////////////////////////////////////////////////////////
-    ArrayList<ArrayList<boolean[]>> possibilities = new ArrayList<ArrayList<boolean[]>>();
-    for (boolean i : _reference) {
+    ArrayList<ArrayList<char[]>> possibilities = new ArrayList<ArrayList<char[]>>();
+    for (int i : _reference) {
       possibilities.add(new ArrayList());
-      for (final boolean[] j : _everyPossibilities) {
+      for (final char[] j : _everyPossibilities) {
         if (i == j[0]) {
           possibilities.get(possibilities.size() - 1).add(j);
         }
@@ -103,9 +82,9 @@ void setup() {
 }
 
 void f(
-  final ArrayList<ArrayList<boolean[]>> possibilities, 
-  ArrayList<boolean[][]> matrixes, 
-  boolean[][] partial, 
+  final ArrayList<ArrayList<char[]>> possibilities, 
+  ArrayList<char[][]> matrixes, 
+  char[][] partial, 
   final char[] _state, 
   final int _gridSize,
   final int length,
@@ -116,13 +95,13 @@ void f(
 
   if (length < _gridSize) {
     for (int _next_index = 0; _next_index < possibilities.get(length).size(); ++_next_index) {
-      boolean[] _next = possibilities.get(length).get(_next_index);
+      char[] _next = possibilities.get(length).get(_next_index);
       char[] _new_state = new char[_gridSize];
       boolean var = true;/// Wether 3 streaks
       for (int i = 0; i < _gridSize; ++i) {
         /// If neutral state or different state
-        if (_state[i] == 4 || ((_state[i] & 1) != 0) != _next[i])
-          _new_state[i] = (char) (_next[i] ? 1 : 0);
+        if (_state[i] == 4 || (_state[i] & 1) != (_next[i] & 1))
+          _new_state[i] = _next[i];
         else if ((_new_state[i] = (char) (_state[i] + 2)) > 3) {
           /// Go from 0 to 2 or 1 to 3
           var = false;
@@ -135,9 +114,9 @@ void f(
     }
   } else {
     /// frequency is for ArrayList
-    ArrayList<boolean[]> columns = new ArrayList<boolean[]>();
+    ArrayList<char[]> columns = new ArrayList<char[]>();
     for (int i = 0; i < _gridSize; ++i) {
-      columns.add(new boolean[_gridSize]);
+      columns.add(new char[_gridSize]);
     }
     for (int i = 0; i < _gridSize; ++i) {
       for (int j = 0; j < _gridSize; ++j) {
@@ -156,15 +135,17 @@ void f(
       }
     }
     if (cool) {
-      println(matrixes.size());
-
+      if(matrixes.size() % 100 == 0) {
+        println(matrixes.size());
+      }
+      
       java.io.FileWriter f = null;
       try {
-        f = new java.io.FileWriter("c:\\x\\" + matrixes.size() + ".txt");
+        f = new java.io.FileWriter("z:\\x\\" + matrixes.size() + ".txt");
         f.write(_gridSize + " // Autogenerated\n");
-        for (boolean[]l : partial) {
-          for (boolean i : l) {
-            f.write(i ? "1" : "0");
+        for (char[]l : partial) {
+          for (char i : l) {
+            f.write('0' +(i));
           }
           f.write("\n");
         }
@@ -185,10 +166,10 @@ void f(
   }
 }
 
-void f(ArrayList<ArrayList<boolean[]>> possibilities, ArrayList<boolean[][]> matrixes, int _gridSize) {
+void f(ArrayList<ArrayList<char[]>> possibilities, ArrayList<char[][]> matrixes, int _gridSize) {
   char[] states = new char[_gridSize];
   for (int i = 0; i< states.length; ++i) {
     states[i] = 4;
   }
-  f(possibilities, matrixes, new boolean[_gridSize][_gridSize], states, _gridSize, 0, new ArrayList<Integer>(_gridSize));
+  f(possibilities, matrixes, new char[_gridSize][_gridSize], states, _gridSize, 0, new ArrayList<Integer>(_gridSize));
 }
