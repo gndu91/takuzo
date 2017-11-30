@@ -11,7 +11,6 @@ boolean[] mCourante;
 int indexCourant;
 
 /// Paramètres
-JSONObject parametres;
 ArrayList<PImage> images;
 
 float[] dimensionsGrilles;
@@ -51,55 +50,43 @@ void setup() {
  */
 void draw() {
   background(255);
-  update();
+  // update();
   afficherGrille();
 }
+float dimensions_grille_w, dimensions_grille_h, dimensions_grille_x, dimensions_grille_y;
 
+color[] grille_couleurs;
+String grille_affichage_type;
+boolean grille_affichage_afficherChiffres;
 /**
  * Servira à initialiser les variables et paramètres
  */
 void init() {
 
   if (!loadConfig()) {
+    /// FLAG:INITIALISATION
+    dimensions_grille_w = 0.75;
+    dimensions_grille_h = 0.75;
+    dimensions_grille_x = 0.125;
+    dimensions_grille_y = 0.125;
 
-    /// https://stackoverflow.com/questions/507602/how-can-i-initialise-a-static-map
-    parametres = new JSONObject() {{
-        put("dimensions", new JSONObject() {{
-            put("grille", new JSONObject() {{
-                put("x", 0.25);
-                put("y", 0.25);
-                put("w", 0.5);
-                put("h", 0.5);
-            }});
-        }});
-        put("grille", new JSONObject() {{
-          put("affichage", new JSONObject() {{
-            put("type","couleurs");
-            put("showDigits","couleurs");
-          }});
-          put("couleurs", new JSONObject() {{
-              put("0", #990000);
-              put("1", #ff0000);
-              put("0#", #009900);
-              put("1#", #00ff00);
-              put("void", #ffffff);
-          }});
-        }});
-    }};
+    grille_affichage_type = "couleurs";
+
+    grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
 
     /// TODO: Initialiser les variables ici, puis
     ///  saveConfig()
   }
 
-    
-  images = parametres.getJSONObject("grille").getJSONObject("affichage").getString("type").equals("images") ? new ArrayList<PImage>() {{
-      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0")));
-      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1")));
-      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0#")));
-      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1#")));
-      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("void")));
-  }} : null;
-    
+
+  /*images = parametres.getJSONObject("grille").getJSONObject("affichage").getString("type").equals("images") ? new ArrayList<PImage>() {{
+   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0")));
+   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1")));
+   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0#")));
+   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1#")));
+   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("void")));
+   }} : null;*/
+
   grilles = chargerGrilles();
   modifiable = modifiable(grilles);
 
@@ -120,15 +107,12 @@ void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
   if (taille*taille != grille.length) {
     throw new RuntimeException("Grille non carrée");
   }
-  JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
-  float w = object.getFloat("w") * (width / taille);
-  float h = object.getFloat("h") * (height / taille);
 
-  float x0 = object.getFloat("x") * width;
-  float y0 = object.getFloat("y") * height;
+  float w = dimensions_grille_w * (width / taille);
+  float h = dimensions_grille_h * (height / taille);
 
-  object = parametres.getJSONObject("grille").getJSONObject("couleurs");
-  int[] colors = {object.getInt("0"), object.getInt("1"), object.getInt("0#"), object.getInt("1#"), object.getInt("void")};
+  float x0 = dimensions_grille_x * width;
+  float y0 = dimensions_grille_y * height;
 
   for (int i = 0; i < taille; ++i)
     for (int j = 0; j < taille; ++j) {
@@ -136,7 +120,7 @@ void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
       int etat = (grille[index] > 1 ? 4 : (grille[index]*2 + int(modifiable[index])));
       float x = x0 + (i * w);
       float y = y0 + (j * h);
-      fill(colors[etat]);
+      fill(grille_couleurs[etat]);
       rect(x, y, w, h);
     }
 }
@@ -145,11 +129,11 @@ void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
 void mousePressed() {
   int taille = (int) sqrt(grilleCourante.length);
 
-  float w = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("w") * (width / taille);
-  float h = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("h") * (height / taille);
+  float w = dimensions_grille_w * (width / taille);
+  float h = dimensions_grille_h * (height / taille);
 
-  float x0 = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("x") * width;
-  float y0 = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("y") * height;
+  float x0 = dimensions_grille_x * width;
+  float y0 = dimensions_grille_y * height;
 
 
   int i = (int) ((mouseX - x0) / w);
@@ -180,6 +164,7 @@ void keyPressed() {
     grilleCourante = grilles[indexCourant][0];
     mCourante = modifiable[indexCourant];
   } else if (key == TAB) {
+    dumbSolverOneStep();
     /*/// Ajout d'une case dans les deux tableaux
      int ancienIndex = indexCourant;
      indexCourant = modifiable.length;
@@ -202,78 +187,62 @@ void keyPressed() {
      */
     /// grilleCourante = grilles[indexCourant][1];
     //mCourante = modifiable[indexCourant];
-  } else {
-    if (key >= '1' && key <= '9') {
-      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
-      float w = object.getFloat("w");
-      float h = object.getFloat("h");
+  } else if (key >= '1' && key <= '9') {
+    float _x = ((float) (mouseX)) / width;
+    float _y = ((float) (mouseY)) / height;
 
-      float x = object.getFloat("x");
-      float y = object.getFloat("y");
+    if (key == '1' || key == '4' || key == '7') {
+      dimensions_grille_w += dimensions_grille_x - _x;
+      dimensions_grille_x = _x;
+    }
+    if (key == '7' || key == '8' || key == '9') {
+      dimensions_grille_h += dimensions_grille_y - _y;
+      dimensions_grille_y = _y;
+    }      
 
-      float _x = ((float) (mouseX)) / width;
-      float _y = ((float) (mouseY)) / height;
-
-      if (key == '1' || key == '4' || key == '7') {
-        object.put("x", _x);
-        object.put("w", w + (x - _x));
+    if (key == '9' || key == '6' || key == '3') {
+      dimensions_grille_w = _x - dimensions_grille_x;
+    }
+    if (key == '3' || key == '2' || key == '1') {
+      dimensions_grille_h = _y - dimensions_grille_y;
+    }
+    
+    if (key == '5') {
+      float mean = (dimensions_grille_h + dimensions_grille_w) / 2;
+      float dimMin = min(width, height), dimMax = max(width, height);
+      
+      dimensions_grille_x += dimensions_grille_w / 2;
+      dimensions_grille_y += dimensions_grille_h / 2;
+      
+      dimensions_grille_h = mean;
+      dimensions_grille_w = mean;
+      
+      if(width > height) {
+        dimensions_grille_h /= (width / height);
+      } else {
+        dimensions_grille_w /= (height / width);
       }
-      if (key == '7' || key == '8' || key == '9') {
-        object.put("y", _y);
-        object.put("h", h + (y - _y));
-      }      
-
-      if (key == '9' || key == '6' || key == '3') {
-        object.put("w", _x - x);
-      }
-      if (key == '3' || key == '2' || key == '1') {
-        object.put("h", _y - y);
-      }
+      
+      dimensions_grille_x -= dimensions_grille_w / 2;
+      dimensions_grille_y -= dimensions_grille_h / 2;
     }
-    if (key == TAB) {
-      dumbSolverOneStep();
-    }
-    if (key == 'm') {
-      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
-      float w = object.getFloat("w");
-      float h = object.getFloat("h");
-      
-      float _x = ((float) (mouseX)) / width;
-      float _y = ((float) (mouseY)) / height;
-
-      object.put("x", _x - (w / 2));
-      object.put("y", _y - (h / 2));
-     
-    }
-    if (key == '+' || key == '-') {
-      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
-      
-      float step = (key == '-' ? -1 : 1) * 0.01;
-      
-      float w = object.getFloat("w");
-      float h = object.getFloat("h");
-      
-      float x = object.getFloat("x");
-      float y = object.getFloat("y");
-
-      object.put("x", x - step);
-      object.put("y", y - step);
-      object.put("w", w + 2 * step);
-      object.put("h", h + 2 * step);
-     
-    }
-    if (key == CODED && ((keyCode == UP) || (keyCode == DOWN) || (keyCode == RIGHT) || (keyCode == LEFT))) {
-      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
-      
-      float step = 0.01;
-      
-      float stepX = (keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0;
-      float stepY = (keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0;
-
-      object.put("x", object.getFloat("x") + stepX);
-      object.put("y", object.getFloat("y") + stepY);
-     
-    }
+  } else if (key == 'm') {
+    dimensions_grille_x = (((float) (mouseX)) / width) - (dimensions_grille_w / 2);
+    dimensions_grille_y = (((float) (mouseY)) / height) - (dimensions_grille_h / 2);
+  } else if (key == '+' || key == '-') {
+    float step = (key == '-' ? -1 : 1) * 0.01;
+    dimensions_grille_x = dimensions_grille_x - step;
+    dimensions_grille_y = dimensions_grille_y - step;
+    dimensions_grille_w = dimensions_grille_w + 2 * step;
+    dimensions_grille_h = dimensions_grille_h + 2 * step;
+  } else if (key == CODED && ((keyCode == UP) || (keyCode == DOWN) || (keyCode == RIGHT) || (keyCode == LEFT))) {
+    float step = 0.01;
+    dimensions_grille_x = (dimensions_grille_x + ((keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0));
+    dimensions_grille_y = (dimensions_grille_y + ((keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0));
+  } else if(key == 'f') {
+    
+    surface.placeWindow(new int[] {0, 0}, new int[] {0, 0});
+    surface.setSize(displayWidth, displayHeight);
   }
 }
 
@@ -589,11 +558,6 @@ void function() {
 
   lignesPossibles = new ArrayList<ArrayList<Integer>>();
   for (int i = 0; i < pow(2, taille); ++i) {
-
-    int[] t = creerLigne(taille, i);
-    if (correct(t)) {
-      lignesPossibles.add(convert(t));
-    }
   }
   /*for (int i = 0; i < taille; ++i) {
    insert(creerLigne(taille), taille * i);
@@ -618,122 +582,115 @@ void update(int index) {
   }
 }
 
-boolean dumbSolverOneStep(int[] t, final boolean[] p) {
-  int size = (int) sqrt(t.length);
-  for (int i = 0; i < t.length; ++i) {
-  }
-  return false;
-}
 boolean dumbSolverOneStep() {
-  return dumbSolverOneStep(grilleCourante, mCourante);
-}
-void dumbSolver(int[] t, boolean[] p) {
-}
-
-void update() {
-  int nombre = 0;
-  int taille = (int) sqrt(grilleCourante.length);
-  ArrayList<ArrayList<Integer>> indexes = new ArrayList<ArrayList<Integer>>();
-
-  ///  Lister toutes les combinaisons d'index possibles, pour cela nous appliquons quelques
-  ///    filtres préliminaires pour nous assurer d'avoir le moins possibles d'assortiments
-}
-
-
-void insert(int[] t, int pos) {
-  for (int i = 0; i + pos < grilleCourante.length && i < t.length; ++i) {
-    grilleCourante[pos + i] = t[i];
+  int size = (int) sqrt(grilleCourante.length);
+  int[] suivante = new int[size * size];
+  for (int i = 0; i < size * size; ++i) {
+    suivante[i] = grilleCourante[i];
   }
-}
+  println("Called");
+  for (int i = 0; i < grilleCourante.length; ++i) {
+    if (mCourante[i]) {
+      println("I = ", i);
+      int debutLigne = (i / size) * size;
+      boolean must_0 = false, must_1 = false;
+      boolean can_0 = false, can_1 = false;
 
-void insert(ArrayList<Integer> t, int pos) {
-  for (int i = 0; i + pos < grilleCourante.length && i < t.size(); ++i) {
-    grilleCourante[pos + i] = t.get(i);
-  }
-}
+      ///
+      int _0 = 0, _1 = 0;
+      for (int k = debutLigne; k < debutLigne + size; ++k) {
+        if (grilleCourante[k] == 0)_0++;
+        else if (grilleCourante[k] == 1)_1++;
+      }
+      println(_0, _1);
 
-int[] extract(int pos, int len) {
-  int[] t = new int[len];
-  for (int i = 0; i + pos < grilleCourante.length && i < t.length; ++i) {
-    t[i] = grilleCourante[pos + i];
-  }
-  return t;
-}
+      if (_0  < (size / 2))can_0 = true;
+      if (_1  < (size / 2))can_1 = true;
+      if (_0 >= (size / 2))must_1 = true;
+      if (_1 >= (size / 2))must_0 = true;
 
-int[] increment(int[] t) {
-  for (int i = t.length - 1; i > -1; --i) {
-    if (t[i] == 0) {
-      t[i] = 1;
-      return t;
+
+      /// 
+      _0 = 0; 
+      _1 = 0;
+      for (int k = i - debutLigne; k < grilleCourante.length; k+=size) {
+        if (grilleCourante[k] == 0)_0++;
+        else if (grilleCourante[k] == 1)_1++;
+      }
+      println(_0, _1);
+
+      if (_0  < (size / 2))can_0 = true;
+      if (_1  < (size / 2))can_1 = true;
+      if (_0 >= (size / 2))must_1 = true;
+      if (_1 >= (size / 2))must_0 = true;
+
+      /// 4 directions possibles
+      int sum;
+      // La somme devrais être non nulle et < 3
+
+      // Gauche
+      sum = 0;
+      for (int k = max(0, i - 2); k < i; ++k) {
+        if (grilleCourante[k] == 1)sum++;
+      }
+      if (sum == 0) {
+        can_0 = false;
+        must_0 = false;
+      } else if (sum == 2) {
+        can_1 = false;
+        must_1 = false;
+      }
+
+      // Droite
+      sum = 0;
+      for (int k = i + 1; k < i - 3; ++k) {
+        if (k < grilleCourante.length && grilleCourante[k] == 1)sum++;
+      }
+      if (sum == 0) {
+        can_0 = false;
+        must_0 = false;
+      } else if (sum == 2) {
+        can_1 = false;
+        must_1 = false;
+      }
+
+      // Haut
+      sum = 0;
+      for (int k = i - (2 * size); k < i && k < grilleCourante.length; k+=size) {
+        if (k > -1 && grilleCourante[k] == 1)sum++;
+      }
+      if (sum == 0) {
+        can_0 = false;
+        must_0 = false;
+      } else if (sum == 2) {
+        can_1 = false;
+        must_1 = false;
+      }
+
+      // Bas
+      sum = 0;
+      for (int k = i + size; k < i + (3 * size) && k < grilleCourante.length; k+=size) {
+        if (k > -1 && grilleCourante[k] == 1)sum++;
+      }
+      if (sum == 0) {
+        can_0 = false;
+        must_0 = false;
+      } else if (sum == 2) {
+        can_1 = false;
+        must_1 = false;
+      }
+
+
+      /// Action
+      if (must_0 != must_1) {
+        suivante[i] = must_0 ? 0 : 1;
+      } else if (can_0 != can_1) {
+        suivante[i] = can_0 ? 0 : 1;
+      } else {
+        println(must_0, must_1, can_0, can_1);
+      }
     }
-    t[i] = 0;
   }
-  return t;
-}
-
-/// Crée une ligne de taille l
-int[] creerLigne(int l) {
-  int[] retour = new int[l];
-  for (int i = 0; i < retour.length; ++i) {
-    retour[i] = 0;
-  }
-  return retour;
-}
-
-ArrayList<Integer> convert(int[] t) {
-  ArrayList<Integer> list = new ArrayList<Integer>();
-  for (int i : t)list.add(i);
-  return list;
-}
-
-int[] convert(ArrayList<Integer> t) {
-  int[] list = new int[t.size()];
-  for (int i = 0; i < t.size(); ++i) {
-    list[i] = t.get(i);
-  }
-  return list;
-}
-
-/// TODO:Verification
-/// Crée une ligne de taille l et l'initialiser à n
-int[] creerLigne(int l, int n) {
-  int[] retour = new int[l];
-  for (int i = l - 1; i > -1; --i) {
-    retour[i] = n % 2;
-    n >>= 1;
-  }
-  return retour;
-}
-int decode(int[]t) {
-  int retour = 0;
-
-  for (int i = t.length - 1, x = 0; i > -1; --i, ++x) {
-    retour += t[i] << x;
-  }
-  return retour;
-}
-
-
-/// Vérifie si une ligne est considérée comme correcte
-boolean correct(int[] line) {
-  int nb0 = 0, nb1 = 0;
-  int nb0Alignes = 0, nb1alignes = 0;
-  for (int i : line) {
-    if (i == 0) {
-      nb0++;
-      nb1alignes = 0;
-      nb0Alignes++;
-      if (nb0Alignes > 2) {
-        return false;
-      }
-    } else if (i == 1) {
-      nb1++;
-      nb0Alignes = 0;
-      nb1alignes++;
-      if (nb1alignes > 2) {
-        return false;
-      }
-    } else throw new RuntimeException(i + " n'est pas binaire");
-  } /// for
-  return nb0 == nb1;
+  grilleCourante = suivante;
+  return false;
 }
