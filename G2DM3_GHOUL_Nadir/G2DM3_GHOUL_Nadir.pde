@@ -208,20 +208,16 @@ void keyPressed() {
     }
     
     if (key == '5') {
-      float mean = (dimensions_grille_h + dimensions_grille_w) / 2;
-      float dimMin = min(width, height), dimMax = max(width, height);
+      float ratio = float(width) / height;
+
+      float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
+      mean = min(dimensions_grille_w, dimensions_grille_h, mean);
       
       dimensions_grille_x += dimensions_grille_w / 2;
       dimensions_grille_y += dimensions_grille_h / 2;
       
-      dimensions_grille_h = mean;
-      dimensions_grille_w = mean;
-      
-      if(width > height) {
-        dimensions_grille_h /= (width / height);
-      } else {
-        dimensions_grille_w /= (height / width);
-      }
+      dimensions_grille_h = mean * ratio;
+      dimensions_grille_w = mean;//  / ratio;
       
       dimensions_grille_x -= dimensions_grille_w / 2;
       dimensions_grille_y -= dimensions_grille_h / 2;
