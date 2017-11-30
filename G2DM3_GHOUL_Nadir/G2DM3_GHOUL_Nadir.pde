@@ -11,6 +11,9 @@ boolean[] mCourante;
 int indexCourant;
 
 /// Paramètres
+JSONObject parametres;
+ArrayList<PImage> images;
+
 float[] dimensionsGrilles;
 // 0 Modifiable -> 0 Constant -> 1 Modifiable -> 1 constant -> Vide modifiable # -> Vide constant 
 PImage[] cases;
@@ -58,39 +61,45 @@ void draw() {
 void init() {
 
   if (!loadConfig()) {
-    dimensionsGrilles = new float[4];
-    dimensionsGrilles[0] = 0;
-    dimensionsGrilles[1] = 0;
-    dimensionsGrilles[2] = 0.25;
-    dimensionsGrilles[3] = 0.25;
 
-    cases = new PImage[5];
-    int c = 16;
-    cases[0] = createImage(c, c, ARGB);
-    for (int i = 0; i < cases[0].pixels.length; i++) {
-      cases[0].pixels[i] = color(127, 255, 0, 0);
-    }
-    cases[1] = createImage(c, c, ARGB);
-    for (int i = 0; i < cases[1].pixels.length; i++) {
-      cases[1].pixels[i] = color(255, 255, 0, 0);
-    }
-    cases[2] = createImage(c, c, ARGB);
-    for (int i = 0; i < cases[2].pixels.length; i++) {
-      cases[2].pixels[i] = color(127, 0, 255, 0);
-    }
-    cases[3] = createImage(c, c, ARGB);
-    for (int i = 0; i < cases[3].pixels.length; i++) {
-      cases[3].pixels[i] = color(255, 0, 255, 0);
-    }
-    cases[4] = createImage(c, c, ARGB);
-    for (int i = 0; i < cases[4].pixels.length; i++) {
-      cases[4].pixels[i] = color(127, 127, 127, 127);
-    }
+    /// https://stackoverflow.com/questions/507602/how-can-i-initialise-a-static-map
+    parametres = new JSONObject() {{
+        put("dimensions", new JSONObject() {{
+            put("grille", new JSONObject() {{
+                put("x", 0.25);
+                put("y", 0.25);
+                put("w", 0.5);
+                put("h", 0.5);
+            }});
+        }});
+        put("grille", new JSONObject() {{
+          put("affichage", new JSONObject() {{
+            put("type","couleurs");
+            put("showDigits","couleurs");
+          }});
+          put("couleurs", new JSONObject() {{
+              put("0", #990000);
+              put("1", #ff0000);
+              put("0#", #009900);
+              put("1#", #00ff00);
+              put("void", #ffffff);
+          }});
+        }});
+    }};
 
     /// TODO: Initialiser les variables ici, puis
     ///  saveConfig()
   }
 
+    
+  images = parametres.getJSONObject("grille").getJSONObject("affichage").getString("type").equals("images") ? new ArrayList<PImage>() {{
+      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0")));
+      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1")));
+      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0#")));
+      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1#")));
+      add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("void")));
+  }} : null;
+    
   grilles = chargerGrilles();
   modifiable = modifiable(grilles);
 
@@ -111,12 +120,15 @@ void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
   if (taille*taille != grille.length) {
     throw new RuntimeException("Grille non carrée");
   }
+  JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
+  float w = object.getFloat("w") * (width / taille);
+  float h = object.getFloat("h") * (height / taille);
 
-  float w = dimensionsGrilles[2] * (width / taille);
-  float h = dimensionsGrilles[3] * (height / taille);
+  float x0 = object.getFloat("x") * width;
+  float y0 = object.getFloat("y") * height;
 
-  float x0 = dimensionsGrilles[0] * width;
-  float y0 = dimensionsGrilles[1] * height;
+  object = parametres.getJSONObject("grille").getJSONObject("couleurs");
+  int[] colors = {object.getInt("0"), object.getInt("1"), object.getInt("0#"), object.getInt("1#"), object.getInt("void")};
 
   for (int i = 0; i < taille; ++i)
     for (int j = 0; j < taille; ++j) {
@@ -124,8 +136,7 @@ void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
       int etat = (grille[index] > 1 ? 4 : (grille[index]*2 + int(modifiable[index])));
       float x = x0 + (i * w);
       float y = y0 + (j * h);
-      fill(etat == 0 ? #990000 : etat == 1 ? #ff0000 : etat == 2 ? #009900 :
-        etat == 3 ? #00ff00 : #ffffff);
+      fill(colors[etat]);
       rect(x, y, w, h);
     }
 }
@@ -134,11 +145,12 @@ void afficherGrille(int[] grille, boolean[] modifiable, PImage[] images) {
 void mousePressed() {
   int taille = (int) sqrt(grilleCourante.length);
 
-  float w = dimensionsGrilles[2] * (width / taille);
-  float h = dimensionsGrilles[3] * (height / taille);
+  float w = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("w") * (width / taille);
+  float h = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("h") * (height / taille);
 
-  float x0 = dimensionsGrilles[0] * width;
-  float y0 = dimensionsGrilles[1] * height;
+  float x0 = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("x") * width;
+  float y0 = parametres.getJSONObject("dimensions").getJSONObject("grille").getFloat("y") * height;
+
 
   int i = (int) ((mouseX - x0) / w);
   int j = (int) ((mouseY - y0) / h);
@@ -188,37 +200,79 @@ void keyPressed() {
      modifiable[indexCourant][i] = modifiable[ancienIndex][i];
      }
      */
-    grilleCourante = grilles[indexCourant][1];
+    /// grilleCourante = grilles[indexCourant][1];
     //mCourante = modifiable[indexCourant];
   } else {
     if (key >= '1' && key <= '9') {
-      float x, y, w, h, _x, _y;
+      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
+      float w = object.getFloat("w");
+      float h = object.getFloat("h");
 
-      x = dimensionsGrilles[0];
-      y = dimensionsGrilles[1];
-      w = dimensionsGrilles[2];
-      h = dimensionsGrilles[3];
+      float x = object.getFloat("x");
+      float y = object.getFloat("y");
 
-      _x = ((float) (mouseX)) / width;
-      _y = ((float) (mouseY)) / height;
+      float _x = ((float) (mouseX)) / width;
+      float _y = ((float) (mouseY)) / height;
 
       if (key == '1' || key == '4' || key == '7') {
-        dimensionsGrilles[0] = _x;
-        dimensionsGrilles[2] = w + (x - _x);
+        object.put("x", _x);
+        object.put("w", w + (x - _x));
       }
       if (key == '7' || key == '8' || key == '9') {
-        dimensionsGrilles[1] = _y;
-        dimensionsGrilles[3] = h + (y - _y);
+        object.put("y", _y);
+        object.put("h", h + (y - _y));
       }      
 
       if (key == '9' || key == '6' || key == '3') {
-        dimensionsGrilles[2] = _x - x;
+        object.put("w", _x - x);
       }
       if (key == '3' || key == '2' || key == '1') {
-        dimensionsGrilles[3] = _y - y;
+        object.put("h", _y - y);
       }
     }
-    if (key == '7') {
+    if (key == TAB) {
+      dumbSolverOneStep();
+    }
+    if (key == 'm') {
+      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
+      float w = object.getFloat("w");
+      float h = object.getFloat("h");
+      
+      float _x = ((float) (mouseX)) / width;
+      float _y = ((float) (mouseY)) / height;
+
+      object.put("x", _x - (w / 2));
+      object.put("y", _y - (h / 2));
+     
+    }
+    if (key == '+' || key == '-') {
+      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
+      
+      float step = (key == '-' ? -1 : 1) * 0.01;
+      
+      float w = object.getFloat("w");
+      float h = object.getFloat("h");
+      
+      float x = object.getFloat("x");
+      float y = object.getFloat("y");
+
+      object.put("x", x - step);
+      object.put("y", y - step);
+      object.put("w", w + 2 * step);
+      object.put("h", h + 2 * step);
+     
+    }
+    if (key == CODED && ((keyCode == UP) || (keyCode == DOWN) || (keyCode == RIGHT) || (keyCode == LEFT))) {
+      JSONObject object = parametres.getJSONObject("dimensions").getJSONObject("grille");
+      
+      float step = 0.01;
+      
+      float stepX = (keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0;
+      float stepY = (keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0;
+
+      object.put("x", object.getFloat("x") + stepX);
+      object.put("y", object.getFloat("y") + stepY);
+     
     }
   }
 }
@@ -541,12 +595,12 @@ void function() {
       lignesPossibles.add(convert(t));
     }
   }
-  for (int i = 0; i < taille; ++i) {
-    insert(creerLigne(taille), taille * i);
-  }
-  for (int i = 0; i < mCourante.length; ++i) {
-    mCourante[i] = true;
-  }
+  /*for (int i = 0; i < taille; ++i) {
+   insert(creerLigne(taille), taille * i);
+   }
+   for (int i = 0; i < mCourante.length; ++i) {
+   mCourante[i] = true;
+   }*/
 }
 
 
@@ -564,10 +618,25 @@ void update(int index) {
   }
 }
 
+boolean dumbSolverOneStep(int[] t, final boolean[] p) {
+  int size = (int) sqrt(t.length);
+  for (int i = 0; i < t.length; ++i) {
+  }
+  return false;
+}
+boolean dumbSolverOneStep() {
+  return dumbSolverOneStep(grilleCourante, mCourante);
+}
+void dumbSolver(int[] t, boolean[] p) {
+}
+
 void update() {
   int nombre = 0;
   int taille = (int) sqrt(grilleCourante.length);
-  int indexes[] = new int[taille];
+  ArrayList<ArrayList<Integer>> indexes = new ArrayList<ArrayList<Integer>>();
+
+  ///  Lister toutes les combinaisons d'index possibles, pour cela nous appliquons quelques
+  ///    filtres préliminaires pour nous assurer d'avoir le moins possibles d'assortiments
 }
 
 
