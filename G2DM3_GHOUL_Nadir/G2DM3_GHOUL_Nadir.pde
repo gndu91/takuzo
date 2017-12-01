@@ -173,16 +173,20 @@ void mousePressed() {
 }
 void mouseWheel(MouseEvent event) {
   float agrandissement = float(event.getCount()) / 10;
+  
   println(agrandissement);
+  
   dimensions_grille_x += dimensions_grille_w / 2;
   dimensions_grille_y += dimensions_grille_h / 2;
   
-  dimensions_grille_w *= (1 - agrandissement);//agrandissement / (width / height);
-  dimensions_grille_h *= (1 - agrandissement);//agrandissement * (width / height);
+  dimensions_grille_w *= (1 - agrandissement);
+  dimensions_grille_h *= (1 - agrandissement);
   
   dimensions_grille_x -= dimensions_grille_w / 2;
   dimensions_grille_y -= dimensions_grille_h / 2;
 }
+
+
 void keyPressed() {
   if (key == BACKSPACE) {
     for (int i = 0; i < mCourante.length; ++i) {
