@@ -626,136 +626,67 @@ color colors[] = null;
 String texts[] = null;
 int current_ = 0;
 
-boolean dumbSolverOneStep() {
+/// Coût: lenght * 2 tests
 
-  int size = (int) sqrt(grilleCourante.length);
-  int[] suivante = new int[size * size];
-  for (int i = 0; i < size * size; ++i) {
-    suivante[i] = grilleCourante[i];
+boolean dumbSolverOneStep() {
+  ArrayList<Integer> test = new ArrayList<Integer>();
+  boolean touched = false;println(grilleCourante.length);
+  /// Copie intégrale
+  for (int i = 0; i < grilleCourante.length; ++i) {
+    test.add(grilleCourante[i]);
   }
   for (int i = 0; i < grilleCourante.length; ++i) {
-    if (mCourante[i]) {      
-      int debutLigne = (i / size) * size;
-      boolean must_0 = false, must_1 = false;
-      boolean can_0 = false, can_1 = false;
-
-      ///
-      int _0 = 0, _1 = 0;
-      for (int k = debutLigne; k < debutLigne + size; ++k) {
-        if (grilleCourante[k] == 0)_0++;
-        else if (grilleCourante[k] == 1)_1++;
-      }
-      println(_0, _1);
-
-      if (_0  < (size / 2))can_0 = true;
-      if (_1  < (size / 2))can_1 = true;
-      if (_0 >= (size / 2))must_1 = true;
-      if (_1 >= (size / 2))must_0 = true;
-
-
-      /// 
-      _0 = 0; 
-      _1 = 0;
-      for (int k = i - debutLigne; k < grilleCourante.length; k+=size) {
-        if (grilleCourante[k] == 0)_0++;
-        else if (grilleCourante[k] == 1)_1++;
-      }
-      println(_0, _1);
-
-      if (_0  < (size / 2))can_0 = true;
-      if (_1  < (size / 2))can_1 = true;
-      if (_0 >= (size / 2))must_1 = true;
-      if (_1 >= (size / 2))must_0 = true;
-
-      /// 4 directions possibles
-      int sum;
-      // La somme devrais être non nulle et < 3
-
-      // Gauche
-      sum = 0;
-      for (int k = max(0, i - 2); k < i; ++k) {
-        /// Meme ligne
-        if(k / size == i / size) {
-          if (grilleCourante[k] == 1)sum++;
-          if ( i == 30 ) {
-            positions[current_++ % positions.length] = new PVector(k % size, k / size);
-            texts[(current_-1) % positions.length] = str(sum);
-          }
-        }
-      }
-      if (sum == 0) {
-        can_0 = false;
-        must_0 = false;
-      } else if (sum == 2) {
-        can_1 = false;
-        must_1 = false;
-      }
-
-      // Droite
-      sum = 0;
-      for (int k = i + 1; k < i - 3; ++k) {
-        if (k < grilleCourante.length && grilleCourante[k] == 1)sum++;
-        if ( i == 30 ) {
-          positions[current_++ % positions.length] = new PVector(k % size, k / size);
-          texts[(current_-1) % positions.length] = str(sum);
-        }
-      }
-      if (sum == 0) {
-        can_0 = false;
-        must_0 = false;
-      } else if (sum == 2) {
-        can_1 = false;
-        must_1 = false;
-      }
-
-      // Haut
-      sum = 0;
-      for (int k = i - (2 * size); k < i && k < grilleCourante.length; k+=size) {
-        if (k > -1 && grilleCourante[k] == 1)sum++;
-        if ( i == 30 ) {
-          positions[current_++ % positions.length] = new PVector(k % size, k / size);
-          texts[(current_-1) % positions.length] = str(sum);
-        }
-      }
-      if (sum == 0) {
-        can_0 = false;
-        must_0 = false;
-      } else if (sum == 2) {
-        can_1 = false;
-        must_1 = false;
-      }
-
-      // Bas
-      sum = 0;
-      for (int k = i + size; k < i + (3 * size) && k < grilleCourante.length; k+=size) {
-        if (k > -1 && grilleCourante[k] == 1)sum++;
-        if ( i == 30 ) {
-          positions[current_++ % positions.length] = new PVector(k % size, k / size);
-          texts[(current_-1) % positions.length] = str(sum);
-        }
-      }
-      if (sum == 0) {
-        can_0 = false;
-        must_0 = false;
-      } else if (sum == 2) {
-        can_1 = false;
-        must_1 = false;
-      }
-
-
-      /// Action
-      if(i == 30) {positions[current_++ % positions.length] = new PVector(i % size, i / size);
-      texts[(current_-1) % positions.length] = str(must_0);}
-      if (must_0 != must_1) {
-        suivante[i] = must_0 ? 0 : 1;
-      } else if (can_0 != can_1) {
-        suivante[i] = can_0 ? 0 : 1;
+    for (int value = 0; i < 2; ++value) {
+      test.set(i, value); /// et si on changeait cela?
+      if (!grilleCorrecte(test)) {
+        test.set(i, grilleCourante[i]);
       } else {
-        println(must_0, must_1, can_0, can_1);
+        grilleCourante[i] = test.get(i);
+        touched = true;  
       }
     }
   }
-  grilleCourante = suivante;
+  return touched;
+}
 
-  return false;
+boolean grilleCorrecte(ArrayList<Integer>grille) {
+  ArrayList<ArrayList<Integer>> lignes, colonnes;
+  println("Copying...");
+  int size = int(sqrt(grilles.length));
+  lignes = new ArrayList<ArrayList<Integer>>(size);
+  colonnes = new ArrayList<ArrayList<Integer>>(size);
+  for(int i = 0; i < size; ++i) {
+    lignes.add(new ArrayList<Integer>(size));
+    colonnes.add(new ArrayList<Integer>(size));
+    for(int j = 0; j < size; ++j) {
+      lignes.get(i).add(-1);
+      colonnes.get(i).add(-1);
+    }
+  }
+  for(int i = 0; i < size; ++i) {
+    for(int j = 0; j < size; ++j) {
+      lignes.get(i).set(j, grille.get(j + (i * size)));
+      colonnes.get(j).set(i, grille.get(j + (i * size)));
+    }
+  }
+  println("Done");  
+  /// Chaque ligne/colonne est unique et possède autant de 0 que de 1
+  for(ArrayList<Integer> ligne:lignes) {
+    if(java.util.Collections.frequency(ligne, 0) != java.util.Collections.frequency(ligne, 1)) {
+      return false;
+    }
+    if(java.util.Collections.frequency(ligne, lignes) != 1) {
+      return false;
+    }
+  }
+  for(ArrayList<Integer> colonne:colonnes) {
+    if(java.util.Collections.frequency(colonne, 0) != java.util.Collections.frequency(colonne, 1)) {
+      return false;
+    }
+    if(java.util.Collections.frequency(colonne, colonnes) != 1) {
+      return false;
+    }
+  }
+
+  return true;
 }
