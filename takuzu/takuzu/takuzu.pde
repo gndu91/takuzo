@@ -38,7 +38,7 @@ void afficherMenus() {
   ///  PLAY - SETTINGS - 
 
   println(mouseX, mouseY);
-  if(!appelerFonction("f"));
+  if (!appelerFonction("f", 584514));
 }
 void initialiserMenus() {
   /// TODO: Sauvegarder dans fichiers json
@@ -47,8 +47,8 @@ void initialiserMenus() {
 /// Fonctions diverses et variées servant à simplifier le code plus haut
 
 
-void f() {
-  println("");
+void f(Object...args) {
+  println("dfdsfqdsf" + args);
 }
 
 ///  Appelle une fontion, sans paramètres, et retourne true si l'on a réussi
@@ -60,17 +60,28 @@ void f() {
 boolean appelerFonction(String nom, Object... args) {
   try {
     java.lang.reflect.Method method = null;
-    
-    for (java.lang.reflect.Method m : this.getClass().getMethods()) {
-      if (method == null && m.getName().equals(nom)) {
+
+    for (java.lang.reflect.Method m : getClass().getMethods()) {
+      if (method == null && m.getName().equals("f")) {
         method = m;
+        println(m, args);
       }
     }
-    
+
     if (method == null) {
       throw new NoSuchMethodException("caca");
     }
-    method.invoke(args); //this is the line that does the magic
+    if (args.length == 0) {
+      method.invoke(this);
+    } else if (args.length == 1) {
+      method.invoke(this, args[0]);
+    } else if (args.length == 2) {
+      method.invoke(this, args[0], args[1]);
+    } else if (args.length == 3) {
+      method.invoke(this, args[0], args[1], args[2]);
+    } else if (args.length == 4) {
+      method.invoke(this, args[0], args[1], args[2], args[3]);
+    } else throw new IllegalArgumentException("Too much");
   } 
   catch (SecurityException e) { 
     e.printStackTrace();
