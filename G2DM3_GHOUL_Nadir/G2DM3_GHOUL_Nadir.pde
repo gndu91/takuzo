@@ -52,6 +52,27 @@ void draw() {
   background(255);
   // update();
   afficherGrille();
+
+
+  if (positions == null) {
+    positions = new PVector[10];
+    positions[current_++ % positions.length] = new PVector(1, 1);
+  }
+  if (texts == null) {
+    texts = new String[10];
+    texts[current_++ % positions.length] = "null";
+  }
+  if (colors == null) {
+    colors = new color[10];
+    for (int i = 0; i < positions.length; ++i) {
+      colors[i] = #111111;
+    }
+  }
+  for (int i = 0; i < positions.length; ++i) {
+    if (positions[i] != null) {
+      putCircle("circle", positions[i], new PVector(1, 1), colors[i], texts[i] == null ? "null" : texts[i]);
+    }
+  }
 }
 float dimensions_grille_w, dimensions_grille_h, dimensions_grille_x, dimensions_grille_y;
 
@@ -206,19 +227,19 @@ void keyPressed() {
     if (key == '3' || key == '2' || key == '1') {
       dimensions_grille_h = _y - dimensions_grille_y;
     }
-    
+
     if (key == '5') {
       float ratio = float(width) / height;
 
       float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
       mean = min(dimensions_grille_w, dimensions_grille_h, mean);
-      
+
       dimensions_grille_x += dimensions_grille_w / 2;
       dimensions_grille_y += dimensions_grille_h / 2;
-      
+
       dimensions_grille_h = mean * ratio;
       dimensions_grille_w = mean;//  / ratio;
-      
+
       dimensions_grille_x -= dimensions_grille_w / 2;
       dimensions_grille_y -= dimensions_grille_h / 2;
     }
@@ -235,8 +256,8 @@ void keyPressed() {
     float step = 0.01;
     dimensions_grille_x = (dimensions_grille_x + ((keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0));
     dimensions_grille_y = (dimensions_grille_y + ((keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0));
-  } else if(key == 'f') {
-    
+  } else if (key == 'f') {
+
     surface.placeWindow(new int[] {0, 0}, new int[] {0, 0});
     surface.setSize(displayWidth, displayHeight);
   }
@@ -578,16 +599,42 @@ void update(int index) {
   }
 }
 
+void putCircle(String type, PVector pos, PVector dim, color couleur, String texte) {
+  if (type.equals("circle")) {
+    int size = (int) sqrt(grilleCourante.length);
+    fill(couleur);
+    ellipse(
+      ///        centré   centré      
+      map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
+      map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height), 
+      dim.x * dimensions_grille_w * width / size, 
+      dim.y * dimensions_grille_h * height / size 
+      );
+    filter(INVERT);
+    textMode(CENTER);
+    text(
+      texte, 
+      map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
+      map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height)
+      );
+    filter(INVERT);
+  }
+}
+
+PVector positions[] = null;
+color colors[] = null;
+String texts[] = null;
+int current_ = 0;
+
 boolean dumbSolverOneStep() {
+
   int size = (int) sqrt(grilleCourante.length);
   int[] suivante = new int[size * size];
   for (int i = 0; i < size * size; ++i) {
     suivante[i] = grilleCourante[i];
   }
-  println("Called");
   for (int i = 0; i < grilleCourante.length; ++i) {
-    if (mCourante[i]) {
-      println("I = ", i);
+    if (mCourante[i]) {      
       int debutLigne = (i / size) * size;
       boolean must_0 = false, must_1 = false;
       boolean can_0 = false, can_1 = false;
@@ -627,7 +674,14 @@ boolean dumbSolverOneStep() {
       // Gauche
       sum = 0;
       for (int k = max(0, i - 2); k < i; ++k) {
-        if (grilleCourante[k] == 1)sum++;
+        /// Meme ligne
+        if(k / size == i / size) {
+          if (grilleCourante[k] == 1)sum++;
+          if ( i == 30 ) {
+            positions[current_++ % positions.length] = new PVector(k % size, k / size);
+            texts[(current_-1) % positions.length] = str(sum);
+          }
+        }
       }
       if (sum == 0) {
         can_0 = false;
@@ -641,6 +695,10 @@ boolean dumbSolverOneStep() {
       sum = 0;
       for (int k = i + 1; k < i - 3; ++k) {
         if (k < grilleCourante.length && grilleCourante[k] == 1)sum++;
+        if ( i == 30 ) {
+          positions[current_++ % positions.length] = new PVector(k % size, k / size);
+          texts[(current_-1) % positions.length] = str(sum);
+        }
       }
       if (sum == 0) {
         can_0 = false;
@@ -654,6 +712,10 @@ boolean dumbSolverOneStep() {
       sum = 0;
       for (int k = i - (2 * size); k < i && k < grilleCourante.length; k+=size) {
         if (k > -1 && grilleCourante[k] == 1)sum++;
+        if ( i == 30 ) {
+          positions[current_++ % positions.length] = new PVector(k % size, k / size);
+          texts[(current_-1) % positions.length] = str(sum);
+        }
       }
       if (sum == 0) {
         can_0 = false;
@@ -667,6 +729,10 @@ boolean dumbSolverOneStep() {
       sum = 0;
       for (int k = i + size; k < i + (3 * size) && k < grilleCourante.length; k+=size) {
         if (k > -1 && grilleCourante[k] == 1)sum++;
+        if ( i == 30 ) {
+          positions[current_++ % positions.length] = new PVector(k % size, k / size);
+          texts[(current_-1) % positions.length] = str(sum);
+        }
       }
       if (sum == 0) {
         can_0 = false;
@@ -678,6 +744,8 @@ boolean dumbSolverOneStep() {
 
 
       /// Action
+      if(i == 30) {positions[current_++ % positions.length] = new PVector(i % size, i / size);
+      texts[(current_-1) % positions.length] = str(must_0);}
       if (must_0 != must_1) {
         suivante[i] = must_0 ? 0 : 1;
       } else if (can_0 != can_1) {
@@ -688,5 +756,6 @@ boolean dumbSolverOneStep() {
     }
   }
   grilleCourante = suivante;
+
   return false;
 }
