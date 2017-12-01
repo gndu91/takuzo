@@ -171,7 +171,18 @@ void mousePressed() {
     }
   }
 }
-
+void mouseWheel(MouseEvent event) {
+  float agrandissement = float(event.getCount()) / 10;
+  println(agrandissement);
+  dimensions_grille_x += dimensions_grille_w / 2;
+  dimensions_grille_y += dimensions_grille_h / 2;
+  
+  dimensions_grille_w *= (1 - agrandissement);//agrandissement / (width / height);
+  dimensions_grille_h *= (1 - agrandissement);//agrandissement * (width / height);
+  
+  dimensions_grille_x -= dimensions_grille_w / 2;
+  dimensions_grille_y -= dimensions_grille_h / 2;
+}
 void keyPressed() {
   if (key == BACKSPACE) {
     for (int i = 0; i < mCourante.length; ++i) {
@@ -186,28 +197,6 @@ void keyPressed() {
     mCourante = modifiable[indexCourant];
   } else if (key == TAB) {
     dumbSolverOneStep();
-    /*/// Ajout d'une case dans les deux tableaux
-     int ancienIndex = indexCourant;
-     indexCourant = modifiable.length;
-     
-     grilles = (int[][][]) expand(grilles, grilles.length + 1);
-     modifiable = (boolean[][]) expand(modifiable, modifiable.length + 1);
-     
-     grilles[indexCourant] = new int[2][];
-     grilles[indexCourant][1] = new int[grilles[ancienIndex][1].length];
-     grilles[indexCourant][0] = new int[grilles[ancienIndex][0].length];
-     for(int i = 0; i < grilles[ancienIndex][1].length; ++i) {
-     grilles[indexCourant][1][i] = grilles[ancienIndex][1][i];
-     grilles[indexCourant][0][i] = grilles[ancienIndex][1][i];
-     }
-     
-     modifiable[indexCourant] = new boolean[modifiable[ancienIndex].length];
-     for(int i = 0; i < modifiable[ancienIndex].length; ++i) {
-     modifiable[indexCourant][i] = modifiable[ancienIndex][i];
-     }
-     */
-    /// grilleCourante = grilles[indexCourant][1];
-    //mCourante = modifiable[indexCourant];
   } else if (key >= '1' && key <= '9') {
     float _x = ((float) (mouseX)) / width;
     float _y = ((float) (mouseY)) / height;
@@ -600,24 +589,29 @@ void update(int index) {
 }
 
 void putCircle(String type, PVector pos, PVector dim, color couleur, String texte) {
-  if (type.equals("circle")) {
-    int size = (int) sqrt(grilleCourante.length);
-    fill(couleur);
-    ellipse(
-      ///        centré   centré      
-      map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
-      map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height), 
-      dim.x * dimensions_grille_w * width / size, 
-      dim.y * dimensions_grille_h * height / size 
-      );
-    filter(INVERT);
-    textMode(CENTER);
-    text(
-      texte, 
-      map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
-      map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height)
-      );
-    filter(INVERT);
+  try {
+    if (type.equals("circle")) {
+      int size = (int) sqrt(grilleCourante.length);
+      fill(couleur);
+      ellipse(
+        ///        centré   centré      
+        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
+        map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height), 
+        dim.x * dimensions_grille_w * width / size, 
+        dim.y * dimensions_grille_h * height / size 
+        );
+      filter(INVERT);
+      textMode(CENTER);
+      text(
+        texte, 
+        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
+        map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height)
+        );
+      filter(INVERT);
+      /// Lors du rediementionnement,
+    }
+  } 
+  catch(ArrayIndexOutOfBoundsException e) {
   }
 }
 
@@ -629,21 +623,37 @@ int current_ = 0;
 /// Coût: lenght * 2 tests
 
 boolean dumbSolverOneStep() {
-  ArrayList<Integer> test = new ArrayList<Integer>();
-  boolean touched = false;println(grilleCourante.length);
+  ArrayList<Integer> test0 = new ArrayList<Integer>();
+  ArrayList<Integer> test1 = new ArrayList<Integer>();
+  boolean marche0, marche1;
+  boolean touched = false;
+  println(grilleCourante.length);
   /// Copie intégrale
   for (int i = 0; i < grilleCourante.length; ++i) {
-    test.add(grilleCourante[i]);
+    test0.add(grilleCourante[i]);
+    test1.add(grilleCourante[i]);
   }
   for (int i = 0; i < grilleCourante.length; ++i) {
-    for (int value = 0; i < 2; ++value) {
-      test.set(i, value); /// et si on changeait cela?
-      if (!grilleCorrecte(test)) {
-        test.set(i, grilleCourante[i]);
-      } else {
-        grilleCourante[i] = test.get(i);
-        touched = true;  
+    if (mCourante[i]) {
+      /// On modifie
+      test0.set(i, 0);
+      test1.set(i, 0);
+
+      marche0 = grilleCorrecte(test0);
+      marche1 = grilleCorrecte(test1);
+
+      println(i, marche0, marche1);
+      if (marche0 != marche1) {
+        touched = true;
+        if (marche0) {
+          grilleCourante[i] = 0;
+        } else {
+          grilleCourante[i] = 1;
+        }
       }
+
+      test0.set(i, grilleCourante[i]);
+      test1.set(i, grilleCourante[i]);
     }
   }
   return touched;
@@ -651,42 +661,81 @@ boolean dumbSolverOneStep() {
 
 boolean grilleCorrecte(ArrayList<Integer>grille) {
   ArrayList<ArrayList<Integer>> lignes, colonnes;
-  println("Copying...");
   int size = int(sqrt(grilles.length));
+
   lignes = new ArrayList<ArrayList<Integer>>(size);
   colonnes = new ArrayList<ArrayList<Integer>>(size);
-  for(int i = 0; i < size; ++i) {
+  for (int i = 0; i < size; ++i) {
     lignes.add(new ArrayList<Integer>(size));
     colonnes.add(new ArrayList<Integer>(size));
-    for(int j = 0; j < size; ++j) {
+    for (int j = 0; j < size; ++j) {
       lignes.get(i).add(-1);
       colonnes.get(i).add(-1);
     }
   }
-  for(int i = 0; i < size; ++i) {
-    for(int j = 0; j < size; ++j) {
+  for (int i = 0; i < size; ++i) {
+    for (int j = 0; j < size; ++j) {
       lignes.get(i).set(j, grille.get(j + (i * size)));
       colonnes.get(j).set(i, grille.get(j + (i * size)));
     }
   }
-  println("Done");  
-  /// Chaque ligne/colonne est unique et possède autant de 0 que de 1
-  for(ArrayList<Integer> ligne:lignes) {
-    if(java.util.Collections.frequency(ligne, 0) != java.util.Collections.frequency(ligne, 1)) {
-      return false;
-    }
-    if(java.util.Collections.frequency(ligne, lignes) != 1) {
-      return false;
-    }
-  }
-  for(ArrayList<Integer> colonne:colonnes) {
-    if(java.util.Collections.frequency(colonne, 0) != java.util.Collections.frequency(colonne, 1)) {
-      return false;
-    }
-    if(java.util.Collections.frequency(colonne, colonnes) != 1) {
-      return false;
-    }
-  }
 
+
+  /// Chaque ligne/colonne est unique et possède autant de 0 que de 1
+  for (ArrayList<Integer> ligne : lignes) {
+    int _0 = 0, _1 = 0;
+    for (Integer i : ligne) {
+      if (i==0)_0++;
+      else if (i==1)_1++;
+      if (_0 > 2 || _1 > 2) {
+        print("Contiguité");
+        return false;
+      }
+    }
+
+    if (java.util.Collections.frequency(ligne, 0) > size / 2) {
+      println("trop de 0: " + java.util.Collections.frequency(ligne, 0));
+      return false;
+    }
+    if (java.util.Collections.frequency(ligne, 1) > size / 2) {
+      println("trop de 1: " + java.util.Collections.frequency(ligne, 1));
+      return false;
+    }
+    if (java.util.Collections.frequency(lignes, ligne) != 1) {
+      println("dupli");
+      return false;
+    }
+  }
+  for (ArrayList<Integer> colonne : colonnes) {
+    int _0 = 0, _1 = 0;
+    for (Integer i : colonne) {
+      if (i==0) {
+        _0++;
+        _1=0;
+      } else if (i==1) {
+        _1++;
+        _0=0;
+      }
+      if (_0 > 2 || _1 > 2) {
+        print("Contiguité");
+        return false;
+      }
+      println(_0, _1);
+    }
+
+    if (java.util.Collections.frequency(colonne, 0) > size / 2) {
+      println("trop de 0: " + java.util.Collections.frequency(colonne, 0));
+      return false;
+    }
+    if (java.util.Collections.frequency(colonne, 1) > size / 2) {
+      println("trop de 1: " + java.util.Collections.frequency(colonne, 1));
+      return false;
+    }
+    if (java.util.Collections.frequency(colonnes, colonne) != 1) {
+      println("dupli");
+      return false;
+    }
+  }
+  println("Good");
   return true;
 }
