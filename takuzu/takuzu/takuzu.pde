@@ -51,7 +51,7 @@ void f() {
   
 }
 
-///  Appelle une fontion, sans paramètres, et retourne true si l'on a réussi
+///  Appelle une fontion, avec ou sans paramètres, et retourne true si l'on a réussi
 ///  Sources:
 ///    https://docs.oracle.com/javase/tutorial/reflect/member/methodInvocation.html
 ///    https://stackoverflow.com/questions/9309536/how-can-i-expand-arguments-in-java
