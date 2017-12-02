@@ -38,7 +38,7 @@ void afficherMenus() {
   ///  PLAY - SETTINGS - 
 
   println(mouseX, mouseY);
-  if (!appelerFonction("f", 584514));
+  if (!appelerFonction("f"));
 }
 void initialiserMenus() {
   /// TODO: Sauvegarder dans fichiers json
@@ -47,8 +47,8 @@ void initialiserMenus() {
 /// Fonctions diverses et variées servant à simplifier le code plus haut
 
 
-void f(Object...args) {
-  println("dfdsfqdsf" + args);
+void f() {
+  
 }
 
 ///  Appelle une fontion, sans paramètres, et retourne true si l'on a réussi
@@ -62,9 +62,8 @@ boolean appelerFonction(String nom, Object... args) {
     java.lang.reflect.Method method = null;
 
     for (java.lang.reflect.Method m : getClass().getMethods()) {
-      if (method == null && m.getName().equals("f")) {
+      if (method == null && m.getName().equals(nom)) {
         method = m;
-        println(m, args);
       }
     }
 
