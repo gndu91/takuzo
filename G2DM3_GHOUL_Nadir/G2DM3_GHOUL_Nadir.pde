@@ -52,7 +52,7 @@ void draw() {
   background(255);
   // update();
   afficherGrille();
-
+  redrawCirleFromMemory();
 
   if (positions == null) {
     positions = new PVector[10];
@@ -592,6 +592,23 @@ void update(int index) {
   }
 }
 
+ArrayList<Object[]> circleRemembered = new ArrayList();
+
+void putCircleAndRemember(Object...args) {
+  circleRemembered.add(args);
+    putCircle((String)args[0], (PVector)args[1], (PVector)args[2], (color)args[3], (String)args[4]);
+}
+
+void redrawCirleFromMemory() {
+  for(Object[] i:circleRemembered) {
+    putCircle((String)i[0], (PVector)i[1], (PVector)i[2], (color)i[3], (String)i[4]);
+  }
+}
+
+void forgetAllCircles() {
+  circleRemembered = new ArrayList();
+}
+
 void putCircle(String type, PVector pos, PVector dim, color couleur, String texte) {
   try {
     if (type.equals("circle")) {
@@ -627,11 +644,14 @@ int current_ = 0;
 /// Coût: lenght * 2 tests
 
 boolean dumbSolverOneStep() {
+  forgetAllCircles();
+  
   ArrayList<Integer> test0 = new ArrayList<Integer>();
   ArrayList<Integer> test1 = new ArrayList<Integer>();
+  int taille = (int) sqrt(grilleCourante.length);
+  
   boolean marche0, marche1;
   boolean touched = false;
-  println(grilleCourante.length);
   /// Copie intégrale
   for (int i = 0; i < grilleCourante.length; ++i) {
     test0.add(grilleCourante[i]);
@@ -641,12 +661,19 @@ boolean dumbSolverOneStep() {
     if (mCourante[i]) {
       /// On modifie
       test0.set(i, 0);
-      test1.set(i, 0);
+      test1.set(i, 1);
 
       marche0 = grilleCorrecte(test0);
       marche1 = grilleCorrecte(test1);
+      
+      if(!marche0 || !marche1) {
+        // println("i: " + i);
+      }
+      if(marche0 && marche1) {
+        println("i: " + i, grilleCorrecte(test0), grilleCorrecte(test1));
+        putCircleAndRemember("circle", new PVector(i % taille, i / taille), new PVector(0.5, 0.5), #00ff00, "All");
+      }
 
-      println(i, marche0, marche1);
       if (marche0 != marche1) {
         touched = true;
         if (marche0) {
@@ -663,7 +690,12 @@ boolean dumbSolverOneStep() {
   return touched;
 }
 
+/// BUG in '5' when w < h
+
 boolean grilleCorrecte(ArrayList<Integer>grille) {
+  return grilleCorrecte(grille, false);
+}
+boolean grilleCorrecte(ArrayList<Integer>grille, boolean verboseTrue) {
   ArrayList<ArrayList<Integer>> lignes, colonnes;
   int size = int(sqrt(grilles.length));
 
@@ -705,10 +737,11 @@ boolean grilleCorrecte(ArrayList<Integer>grille) {
       println("trop de 1: " + java.util.Collections.frequency(ligne, 1));
       return false;
     }
-    if (java.util.Collections.frequency(lignes, ligne) != 1) {
+    /// Au début cela peut être normal
+    /*if (java.util.Collections.frequency(lignes, ligne) != 1) {
       println("dupli");
       return false;
-    }
+    }*/
   }
   for (ArrayList<Integer> colonne : colonnes) {
     int _0 = 0, _1 = 0;
@@ -721,10 +754,10 @@ boolean grilleCorrecte(ArrayList<Integer>grille) {
         _0=0;
       }
       if (_0 > 2 || _1 > 2) {
+        println(_0, _1);
         print("Contiguité");
         return false;
       }
-      println(_0, _1);
     }
 
     if (java.util.Collections.frequency(colonne, 0) > size / 2) {
@@ -735,11 +768,11 @@ boolean grilleCorrecte(ArrayList<Integer>grille) {
       println("trop de 1: " + java.util.Collections.frequency(colonne, 1));
       return false;
     }
-    if (java.util.Collections.frequency(colonnes, colonne) != 1) {
+    /// Au début cela peut être normal
+    /*if (java.util.Collections.frequency(colonnes, colonne) != 1) {
       println("dupli");
       return false;
-    }
+    }*/
   }
-  println("Good");
   return true;
 }
