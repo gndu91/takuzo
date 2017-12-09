@@ -74,25 +74,6 @@ void draw() {
   afficherGrille();
   debug();
 
-  if (positions == null) {
-    positions = new PVector[10];
-    positions[current_++ % positions.length] = new PVector(1, 1);
-  }
-  if (texts == null) {
-    texts = new String[10];
-    texts[current_++ % positions.length] = "null";
-  }
-  if (colors == null) {
-    colors = new color[10];
-    for (int i = 0; i < positions.length; ++i) {
-      colors[i] = #111111;
-    }
-  }
-  for (int i = 0; i < positions.length; ++i) {
-    if (positions[i] != null) {
-      putCircle("circle", positions[i], new PVector(1, 1), colors[i], texts[i] == null ? "null" : texts[i]);
-    }
-  }
 }
 float dimensions_grille_w, dimensions_grille_h, dimensions_grille_x, dimensions_grille_y;
 
@@ -118,15 +99,6 @@ void init() {
     /// TODO: Initialiser les variables ici, puis
     ///  saveConfig()
   }
-
-
-  /*images = parametres.getJSONObject("grille").getJSONObject("affichage").getString("type").equals("images") ? new ArrayList<PImage>() {{
-   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0")));
-   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1")));
-   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("0#")));
-   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("1#")));
-   add(loadImage(parametres.getJSONObject("grille").getJSONObject("images").getString("void")));
-   }} : null;*/
 
   grilles = chargerGrilles();
 
@@ -274,7 +246,6 @@ void keyPressed() {
     changeState(FLAG_SHALL_NOT_GO_OUT);
   }
 }
-
 
 void afficherGrille() {
   afficherGrille(courante, cases);
@@ -563,7 +534,7 @@ ArrayList<Grille> chargerGrilles(String path, String prefix) {
     throw new RuntimeException("Les grilles n'ont pas été trouvées, (prefix='" + prefix + "', suffix_solution='" + suffix_solution + "', suffix_grille='" + suffix_grille + "').");
   }
   /// On crée les liens
-  for (int i = 0; i > grilles.size(); ++i) {
+  for (int i = 0; i < grilles.size(); ++i) {
     grilles.get(i).suivante = grilles.get((i + 1) % grilles.size());
   }
   return grilles;
@@ -677,10 +648,6 @@ void putCircle(String type, PVector pos, PVector dim, color couleur, String text
   }
 }
 
-PVector positions[] = null;
-color colors[] = null;
-String texts[] = null;
-int current_ = 0;
 
 /// Coût: lenght * 2 tests
 
