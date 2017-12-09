@@ -268,8 +268,10 @@ void keyPressed() {
     surface.setSize(displayWidth, displayHeight);
   } else if (key == 's') {
     shake = !shake;
-  } else if (key == '.') {
+  } else if (key == '.' && false) {
     follow = !follow;
+  } else if (key == '.') {
+    changeState(FLAG_SHALL_NOT_GO_OUT);
   }
 }
 
@@ -278,6 +280,58 @@ void afficherGrille() {
   afficherGrille(courante, cases);
 }
 
+
+/**
+ Paramètres généraux, un seul long, simple à sauvegarder, et ne nécéssitant que
+ la déclaration d'une variable et de constantes, cela pourra aussi être utile
+ d'utiliser cela pour pouvoir intercepter les modifications, par exemple afficher
+ tout les changements d'une variable en cas de compotement inhabituel.
+ Pour assigner aux flags une valeur, et pour m'assurer qu'il n'y aura pas deux fois
+ la même valeur, je peux les initialiser de deux manières:
+ 1/ A la main:
+ a = 0b0000000000000000000000000000000000000000000000000000000000000001L
+ b = 0b0000000000000000000000000000000000000000000000000000000000000010L
+ c = 0b0000000000000000000000000000000000000000000000000000000000000100L
+ 2/ Automatiquement
+ cur = 1L;
+ a = cur;
+ b = (cur << 1);
+ c = (cur << 1);
+ */
+long current_state = 0b0000000000000000000000000000000000000000000000000000000000000000L;
+long flag_cursor   = 1L; // Représente, si différent de 1, le nombre de flags au total
+///  S'il est vrai, la fenetre sera située de manière à ce que la grille ne dépasse pas,
+///    pour l'instant, nous nous contenterons de placer la fenetre pour que la grille
+///    soit au centre
+///  XXX: Mettre à jour ce commentaire en cas de changement de méthode
+final long FLAG_SHALL_NOT_GO_OUT = flag_cursor;
+
+/**
+ Change l'état d'un paramètre
+ Retourne si l'état a été changé
+ */
+boolean getState(long flag) {
+  return (flag & current_state) != 0;
+}
+
+void setState(long flag, boolean newState) {
+  if (newState) {
+    current_state |= flag;
+  } else {
+    current_state &= ~flag;
+  }
+}
+
+/// Change the state and return the new state
+boolean changeState(long flag) {
+  if (getState(flag)) {
+    setState(flag, false);
+    return false;
+  } else {
+    setState(flag, true);
+    return true;
+  }
+}
 
 /**
  *  Retourne une liste de matrices
@@ -689,6 +743,7 @@ void debug() {
     //                    new int[] {width , height});
   }
   if (follow) {
+    /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
     int x = java.awt.MouseInfo.getPointerInfo().getLocation().x;
     int y = java.awt.MouseInfo.getPointerInfo().getLocation().y;
     int a = 50;
