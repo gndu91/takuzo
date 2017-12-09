@@ -702,8 +702,38 @@ boolean dumbSolverOneStep() {
 }
 boolean shake = false, follow = false;
 int positionX = 0, positionY = 0;
+
+
 void debug() {
   redrawCirleFromMemory();
+  if (getState(FLAG_SHALL_NOT_GO_OUT) || true) {
+    /// Récupère la position de la fenêtre
+    java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
+    if (window != null) {
+      float x = window.getX();
+      float y = window.getY();
+
+      /// We take the relative position, then we substract 1 / 2 to have a location relative to the center
+      ///  NOTE: ((a + b) / 2) + (c / 2) = (a + b + c) / 2
+      float relativeOffsetX = ((dimensions_grille_x + dimensions_grille_x + dimensions_grille_w - 1) / 2);
+      float relativeOffsetY = ((dimensions_grille_y + dimensions_grille_y + dimensions_grille_h - 1) / 2);
+
+      x += relativeOffsetX * width;
+      y += relativeOffsetY * height;
+      
+      dimensions_grille_x -= relativeOffsetX;
+      dimensions_grille_y -= relativeOffsetY;
+
+      println(x, y);
+      
+      /// Still in screen
+      x = max(0, min(x, displayWidth - width));
+      y = max(0, min(y, displayHeight - height));
+
+      surface.placeWindow(new int[] {int(x), int(y)}, new int[] {});
+
+    }
+  }
   if (shake) {
     surface.setSize(width - (random(-10, 10) < 0 ? 1 : -1), height + (random(-10, 10) < 0 ? 1 : -1));
     //surface.placeWindow(new int[] {((java.awt.)(surface.getNative())).getX() - (random(-10, 10) < 0 ? 1 : -1), ((java.awt.Frame)(surface.getNative())).getY() + (random(-10, 10) < 0 ? 1 : -1)},
