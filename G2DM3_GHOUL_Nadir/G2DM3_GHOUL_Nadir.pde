@@ -37,6 +37,9 @@ float[] dimensionsGrilles;
 // 0 Modifiable -> 0 Constant -> 1 Modifiable -> 1 constant -> Vide modifiable # -> Vide constant 
 PImage[] cases;
 
+/// Offset entre (0, 0) de la fenêtre et le (0, 0) du canvas
+PVector offset;
+
 /**
  *  Fonction chargée de l'allocation mémoire, d'après la documentation,
  *      elle est appellée avant setup
@@ -70,11 +73,22 @@ void setup() {
  */
 void draw() {
   background(255);
-  // update();
   afficherGrille();
   debug();
-
+  
 }
+
+void mouseMoved() {
+  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
+  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
+  if(window != null) {
+    /// On recupere les deux valeurs relatives
+    offset.x = (float) ((mouseX) - (mouseAbsolutePosition.getX() - window.getX()));
+    offset.y = (float) ((mouseY) - (mouseAbsolutePosition.getY() - window.getY()));
+  }
+  println(offset);
+}
+
 float dimensions_grille_w, dimensions_grille_h, dimensions_grille_x, dimensions_grille_y;
 
 color[] grille_couleurs;
@@ -95,6 +109,7 @@ void init() {
     grille_affichage_type = "couleurs";
 
     grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
+    offset = new PVector(0, 0, 0);
 
     /// TODO: Initialiser les variables ici, puis
     ///  saveConfig()
@@ -223,8 +238,7 @@ void keyPressed() {
       dimensions_grille_y -= dimensions_grille_h / 2;
     }
   } else if (key == 'm') {
-    dimensions_grille_x = (((float) (mouseX)) / width) - (dimensions_grille_w / 2);
-    dimensions_grille_y = (((float) (mouseY)) / height) - (dimensions_grille_h / 2);
+    changeState(FLAG_GRID_FOLLOWS_MOUSE);
   } else if (key == '+' || key == '-') {
     float step = (key == '-' ? -1 : 1) * 0.01;
     dimensions_grille_x = dimensions_grille_x - step;
@@ -236,14 +250,13 @@ void keyPressed() {
     dimensions_grille_x = (dimensions_grille_x + ((keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0));
     dimensions_grille_y = (dimensions_grille_y + ((keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0));
   } else if (key == 'f') {
-    surface.placeWindow(new int[] {0, 0}, new int[] {0, 0});
-    surface.setSize(displayWidth, displayHeight);
+    changeState(FLAG_FULLSCREEN);
   } else if (key == 's') {
-    shake = !shake;
+    changeState(FLAG_SHAKE_WINDOW);
   } else if (key == '.' && false) {
-    follow = !follow;
+    changeState(FLAG_WINDOW_FOLLOWS_MOUSE);
   } else if (key == '.') {
-    changeState(FLAG_SHALL_NOT_GO_OUT);
+    changeState(FLAG_WINDOW_CENTERED_ON_GRID);
   }
 }
 
@@ -276,6 +289,12 @@ long flag_cursor   = 1L; // Représente, si différent de 1, le nombre de flags 
 ///    soit au centre
 ///  XXX: Mettre à jour ce commentaire en cas de changement de méthode
 final long FLAG_SHALL_NOT_GO_OUT = flag_cursor;
+final long FLAG_GRID_FOLLOWS_MOUSE = (flag_cursor <<= 1);
+final long FLAG_WINDOW_CENTERED_ON_GRID = (flag_cursor <<= 1);
+final long FLAG_WINDOW_FULLY_INSIDE_SCREEN = (flag_cursor <<= 1);
+final long FLAG_SHAKE_WINDOW = (flag_cursor <<= 1);
+final long FLAG_WINDOW_FOLLOWS_MOUSE = (flag_cursor <<= 1);
+final long FLAG_FULLSCREEN = (flag_cursor <<= 1);
 
 /**
  Change l'état d'un paramètre
@@ -295,6 +314,9 @@ void setState(long flag, boolean newState) {
 
 /// Change the state and return the new state
 boolean changeState(long flag) {
+  if((flag & FLAG_FULLSCREEN) != 0) {
+     surface.getNative().fullScreen();
+  }
   if (getState(flag)) {
     setState(flag, false);
     return false;
@@ -304,234 +326,201 @@ boolean changeState(long flag) {
   }
 }
 
+Grille chargerGrille(String path, int index) {
+  /// On déclare les variables
+  File fichier_grille = null;
+  File fichier_solution = null;
+
+  String suffix_grille = ".tak";
+  String suffix_solution = ".sol";
+
+  /// Nous allons utiliser deux tableaux de chaines de charactères, un pour la grille, un pour les solution
+  String[] lignes_grille, lignes_solution;
+
+  ///  Les deux chaines de caractères serviront à la lecture en parallèle des
+  ///    lignes des fichiers.
+  String ligne_grille, ligne_solution;
+
+  /// Le stockage des tailles est utile pour les comparer
+  int taille_grille, taille_solution;
+
+  Grille grille = new Grille();
+  grille.index = index - 1;
+
+  ///  Nous allons commencer par la grille initiale, en se rappelant que les fichiers commencent avec l'index 1
+  fichier_grille = new File(path + suffix_grille);
+  fichier_solution = new File(path + suffix_solution);
+  /// Lecture des lignes
+  lignes_grille = loadStrings(fichier_grille);
+  lignes_solution = loadStrings(fichier_solution);
+
+  /// Vérification peut-être superflue, mais on n'est jamais trop sûr
+  if (!fichier_grille.canRead() || !fichier_solution.canRead()) {
+    return null;
+  }
+
+  /// S'assure que les fichiers soit biens lus
+  /// On lis la premiere ligne des deux fichiers
+  ligne_grille = lignes_grille[0];
+  ligne_solution = lignes_solution[0];
+
+  ////////////////////////////////////////////////////////////////////////80 chars
+  ///  D'abord la solution, ce qui sera simple, vu que je ne lirai que
+  ///    la taille de la grille, je prendrai tout ce qui se trouve
+  ///    avant le "//" s'il y en a un, et je supprimerai les espaces
+  ///    pour pouvoir convertir en int
+  taille_solution = int((ligne_solution.contains("//") ?
+    ligne_solution.substring(0, ligne_solution.indexOf("//")) :
+    ligne_solution).trim());
+  if (taille_solution == 0) {
+    throw new RuntimeException("Grille solution étonemment vide pour le fichier " +
+      fichier_solution.getAbsolutePath() + " (ligne:\"" +
+      ligne_solution.trim() + "\")");
+  }
+
+  ////////////////////////////////////////////////////////////////////////80 chars
+  /// Ensuite, on passe à la grille initiale
+  int slashIndex = lignes_grille[0].indexOf("//");
+  /// S'il y a un double slash:
+  if (slashIndex > -1) {
+    ///  alors le prendre ce qu'il y a à gauche, en supprimant les espaces,
+    ///    ce qui revient à prendre la sous chaine de charactères de la
+    ///    ligne actuelle commençant au début et ayant slashIndex lettres,
+    ///    car s'il n'y a qu'une lettre avant le double slash, la variable
+    ///    vaudra 1. Après avoir découpé la partie que nous souhaitons avoir,
+    ///    nous allons supprimer les espaces, pour les raisons exprimées plus
+    ///    tôt dans cette fonction.
+    taille_grille = int(ligne_grille.substring(0, slashIndex).trim());
+
+    //////////////////////////////////////////////////////////////////////80 chars
+    ///  Nous allons prendre la seconde partie, pour cela, nous allons
+    ///    commencer par prendre la partie de droite, puis ...
+    ligne_grille.substring(slashIndex);
+    do {
+      /// ... nous retirons la première lettre ...
+      ligne_grille.substring(1);
+      /// ... tant qu'elle nous ne conviens pas;
+    } while (ligne_grille.startsWith("\\p{Blank}|/"));
+
+    ///  J'ai vu que les grilles possèdent une structure "{taille} // {date}",
+    ///    je vais donc stoquer la date dans une variable, au cas où.
+    grille.description = "Grille n°" + index + " " + ligne_grille;
+  } else {/// Sinon, cela signifie que la taille est la seule information disponible
+    /// Voir précédente occurence de cette ligne, un peu plus tôt, dans le if
+    taille_grille = int(ligne_grille.substring(0, slashIndex).trim());
+    ///  J'ai vu que les grilles possèdent une structure "{taille} // {date}",
+    ///    je vais donc stoquer la date dans une variable, au cas où.
+    grille.description = "Grille n°" + index;
+  }
+
+  //////////////////////////////////////////////////////////////////////80 chars
+  ///  Premièrement, on s'assure que les tailles indiquées sont les mêmes,
+  ///    comme dit précédemment, cette erreur ne devrais pas apparaître 
+  if (taille_grille != taille_solution) {
+    throw new RuntimeException(
+      "Les tailles de grilles sont différentes (" +
+      fichier_grille.getAbsolutePath() + ", " + 
+      fichier_solution.getAbsolutePath() + ")");
+  }
+  grille.taille = taille_grille;
+
+  //////////////////////////////////////////////////////////////////////80 chars
+  ///  On va maintenant les remplir, en commençant par la grille
+  ///    initiale, pour ce faire, on parcours le tableau en commençant
+  ///    par la seconde ligne
+  grille.ruban = new int[grille.taille * grille.taille];
+  grille.modifiables = new boolean[grille.taille * grille.taille];
+  for (int ligne = 1; ligne < lignes_grille.length; ++ligne) {
+
+    ///  On utilise la variable créée précédemment, et on s'assure
+    ///    d'effacer tout les éventuels espaces
+    ligne_grille = lignes_grille[ligne].trim();
+
+    /// Si la ligne a un nombre incorrect de symboles
+    if (taille_grille != ligne_grille.length()) {
+      throw new RuntimeException(
+        "Inconsistence trouvé dans le fichier \"" +
+        fichier_grille.getAbsolutePath() + "\", ligne " +
+        ligne + ", la taille devrait être de " + taille_grille 
+        + ", mais elle est de " + ligne_grille.length() + ".");
+    }
+
+    ///  Un par un, nous allons sauvegarder la valeur des différents
+    ///    charactères, en nous assurant qu'ils soient valable
+    for (int colonne = 0; colonne < taille_grille; ++colonne) {
+      ///  La colonne actuelle est colonne, mais la ligne actuelle
+      ///    est ligne - 1 car nous avons commencé à ligne = 1.
+      ///  Nous faisons i - '0' pour obtenir le chiffre associé
+      grille.ruban[colonne + ((ligne - 1) * taille_grille)] =
+        ligne_grille.charAt(colonne) - '0';
+      grille.modifiables[colonne + ((ligne - 1) * taille_grille)] =
+        ligne_grille.charAt(colonne) == '2';
+
+      /// Si le chiffre n'est pas dans {0, 1, 2}
+      if (grille.ruban[colonne + ((ligne - 1) * taille_grille)] < 0 || 
+        grille.ruban[colonne + ((ligne - 1) * taille_grille)] > 2) {
+        throw new RuntimeException(
+          "Inconsistence trouvé dans le fichier \"" +
+          fichier_grille.getAbsolutePath() + "\", ligne " +
+          ligne + ", colonne " + colonne + ", le caractère '" + 
+          + ligne_grille.charAt(colonne) +
+          "' n'est pas dans {'0', '1', '2'}.");
+      }
+    }
+  }
+
+  //////////////////////////////////////////////////////////////////////80 chars
+  ///  On va ensuite faire de même pour la grille solution
+  grille.solution = new int[grille.taille * grille.taille];
+  for (int ligne = 1; ligne < lignes_solution.length; ++ligne) {
+    ligne_solution = lignes_solution[ligne].trim();
+    if (taille_grille != ligne_solution.length()) {
+      throw new RuntimeException(
+        "Inconsistence trouvé dans le fichier \"" +
+        fichier_solution.getAbsolutePath() + "\", ligne " +
+        ligne + ", la taille devrait être de " + taille_solution
+        + ", mais elle est de " + ligne_solution.length() + ".");
+    }
+    for (int colonne = 0; colonne < taille_solution; ++colonne) {
+      grille.solution[colonne + ((ligne - 1) * taille_solution)] =
+        ligne_solution.charAt(colonne) - '0';
+      if ((grille.solution[colonne + ((ligne - 1) * taille_solution)] < 0) || 
+        (grille.solution[colonne + ((ligne - 1) * taille_solution)] > 2)) {
+        throw new RuntimeException(
+          "Inconsistence trouvé dans le fichier \"" +
+          fichier_solution.getAbsolutePath() + "\", ligne " +
+          ligne + ", colonne " + colonne + ", le caractère '" + 
+          + ligne_solution.charAt(colonne) +
+          "' n'est pas dans {'0', '1', '2'}.");
+      }
+    }
+  }
+  return grille;
+}
+
 /**
  *  Retourne une liste de matrices
  */
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 ArrayList<Grille> chargerGrilles(String path, String prefix) {
   ArrayList<Grille> grilles = new ArrayList<Grille>();
-  ///  Le tableau est déclaré ici, mais pour le momment, nous ne connaissons ni la taille de
-  ///    celui-ci, ni les dimensions des grilles qui le composent.
-  ///  Ce sera une liste de grilles, et chaque grille sera une liste de deux listes, une première
-  ///    servira à stocker la grille initiale, et l'autre servira à sauvegarder la grille solution
   ///  TODO: Ajouter des sauvegarders/sauvegardes automatiques
 
   ////// Etape 1: On se place dans le dossier, et on gère les eventuels erreurs liées aux chemins
 
-  /// Je joins les deux dossiers
-  if (path != null && prefix != null && path.length() > 0 && prefix.length() > 0) {
-    prefix = path + ("/\\".contains(path.substring(path.length() - 1)) ? "\\" : "") + prefix;
-  } else if (prefix == null || prefix.length() == 0) {
-    prefix = path;
-  }
-
-  ///  Pour une raison que j'ignore, File ne peut pas lire les fichiers ayant été défini par un
-  ///    chemin relatif, mais il peux donner leurs chemins absolu, des chemins qu'il pourra
-  ///    donc traiter.
-  prefix = new File(prefix).getAbsolutePath();
-
-  ////// Etape 2: On estime le nombre de fichiers
-
-  String suffix_grille = ".tak";
-  String suffix_solution = ".sol";
+  /// Je joins les deux dossiers, pour cela je m'assure d'avoir des chaines de caractères, puis je joins les bouts
+  prefix = java.nio.file.Paths.get((path == null) ? "" : path, (prefix == null) ? "" : prefix).toAbsolutePath().toString();
 
 
-  ///  TODO: Gérer les exceptions pouvant survenir en cas de changement des fichiers entre
-  ///    le "listing" des fichiers et le lecture de ceux-ci, pour l'instant, nous allons
-  ///    nous contenter de les laisser à null (s'assurer qu'ils le soit)
-  ///  On itère jusqu'à que nous ne puvons plus lire le fichier (fichier n°taille+1) 
-  for (int i = 1; (new File(prefix + i + suffix_grille)).canRead() && (new File(prefix + i + suffix_solution)).canRead(); ++i) {
-    /// On déclare les variables
-    File fichier_grille = null;
-    File fichier_solution = null;
-
-    /// Nous allons utiliser deux tableaux de chaines de charactères, un pour la grille, un pour les solution
-    String[] lignes_grille, lignes_solution;
-
-    ///  Les deux chaines de caractères serviront à la lecture en parallèle des
-    ///    lignes des fichiers.
-    String ligne_grille, ligne_solution;
-
-    /// Le stockage des tailles est utile pour les comparer
-    int taille_grille, taille_solution;
-
-    Grille grille = new Grille();
-    grille.index = i - 1;
-
-    ///  Nous allons commencer par la grille initiale, en se rappelant que les fichiers commencent avec l'index 1
-    fichier_grille = new File(prefix + i + suffix_grille);
-    fichier_solution = new File(prefix + i + suffix_solution);
-    /// Lecture des lignes
-    lignes_grille = loadStrings(fichier_grille);
-    lignes_solution = loadStrings(fichier_solution);
-
-    /// Vérification peut-être superflue, mais on n'est jamais trop sûr
-    if (!fichier_grille.canRead() || !fichier_solution.canRead()) {
-      println();
-      println(fichier_grille.getAbsolutePath(), fichier_grille.exists() ? "existe" : "n'existe pas");
-      println(fichier_solution.getAbsolutePath(), fichier_solution.exists() ? "existe" : "n'existe pas");
-      println();
-      println(fichier_grille.getAbsolutePath(), fichier_grille.canRead() ? "peut" : "ne peut pas", "être lu");
-      println(fichier_solution.getAbsolutePath(), fichier_solution.canRead() ? "peut" : "ne peut pas", "être lu");
-      throw new RuntimeException("Les grilles ne sont pas lisibles");
-    }
-    if ((lignes_grille == null) || (lignes_solution == null)) {
-      throw new RuntimeException("Erreur de lecture");
-    }
-
-    /// S'assure que les fichiers soit biens lus
-    /// On lis la premiere ligne des deux fichiers
-    ligne_grille = lignes_grille[0];
-    ligne_solution = lignes_solution[0];
-
-    ////////////////////////////////////////////////////////////////////////80 chars
-    ///  D'abord la solution, ce qui sera simple, vu que je ne lirai que
-    ///    la taille de la grille, je prendrai tout ce qui se trouve
-    ///    avant le "//" s'il y en a un, et je supprimerai les espaces
-    ///    pour pouvoir convertir en int
-    taille_solution = int((ligne_solution.contains("//") ?
-      ligne_solution.substring(0, ligne_solution.indexOf("//")) :
-      ligne_solution).trim());
-    if (taille_solution == 0) {
-      throw new RuntimeException("Grille solution étonemment vide pour le fichier " +
-        fichier_solution.getAbsolutePath() + " (ligne:\"" +
-        ligne_solution.trim() + "\")");
-    }
-
-    ////////////////////////////////////////////////////////////////////////80 chars
-    /// Ensuite, on passe à la grille initiale
-    int slashIndex = lignes_grille[0].indexOf("//");
-    /// S'il y a un double slash:
-    if (slashIndex > -1) {
-      ///  alors le prendre ce qu'il y a à gauche, en supprimant les espaces,
-      ///    ce qui revient à prendre la sous chaine de charactères de la
-      ///    ligne actuelle commençant au début et ayant slashIndex lettres,
-      ///    car s'il n'y a qu'une lettre avant le double slash, la variable
-      ///    vaudra 1. Après avoir découpé la partie que nous souhaitons avoir,
-      ///    nous allons supprimer les espaces, pour les raisons exprimées plus
-      ///    tôt dans cette fonction.
-      taille_grille = int(ligne_grille.substring(0, slashIndex).trim());
-
-      //////////////////////////////////////////////////////////////////////80 chars
-      ///  Nous allons prendre la seconde partie, pour cela, nous allons
-      ///    commencer par prendre la partie de droite, puis ...
-      ligne_grille.substring(slashIndex);
-      do {
-        /// ... nous retirons la première lettre ...
-        ligne_grille.substring(1);
-        /// ... tant qu'elle nous ne conviens pas;
-      } while (ligne_grille.startsWith("\\p{Blank}|/"));
-
-      ///  J'ai vu que les grilles possèdent une structure "{taille} // {date}",
-      ///    je vais donc stoquer la date dans une variable, au cas où.
-      grille.description = "Grille n°" + i + " " + ligne_grille;
-    } else {/// Sinon, cela signifie que la taille est la seule information disponible
-      /// Voir précédente occurence de cette ligne, un peu plus tôt, dans le if
-      taille_grille = int(ligne_grille.substring(0, slashIndex).trim());
-      ///  J'ai vu que les grilles possèdent une structure "{taille} // {date}",
-      ///    je vais donc stoquer la date dans une variable, au cas où.
-      grille.description = "Grille n°" + i;
-    }
-
-    //////////////////////////////////////////////////////////////////////80 chars
-    ///  Premièrement, on s'assure que les tailles indiquées sont les mêmes,
-    ///    comme dit précédemment, cette erreur ne devrais pas apparaître 
-    if (taille_grille != taille_solution) {
-      throw new RuntimeException(
-        "Les tailles de grilles sont différentes (" +
-        fichier_grille.getAbsolutePath() + ", " + 
-        fichier_solution.getAbsolutePath() + ")");
-    }
-    grille.taille = taille_grille;
-
-    //////////////////////////////////////////////////////////////////////80 chars
-    ///  On va maintenant les remplir, en commençant par la grille
-    ///    initiale, pour ce faire, on parcours le tableau en commençant
-    ///    par la seconde ligne
-    grille.ruban = new int[grille.taille * grille.taille];
-    grille.modifiables = new boolean[grille.taille * grille.taille];
-    for (int ligne = 1; ligne < lignes_grille.length; ++ligne) {
-
-      ///  On utilise la variable créée précédemment, et on s'assure
-      ///    d'effacer tout les éventuels espaces
-      ligne_grille = lignes_grille[ligne].trim();
-
-      /// Si la ligne a un nombre incorrect de symboles
-      if (taille_grille != ligne_grille.length()) {
-        throw new RuntimeException(
-          "Inconsistence trouvé dans le fichier \"" +
-          fichier_grille.getAbsolutePath() + "\", ligne " +
-          ligne + ", la taille devrait être de " + taille_grille 
-          + ", mais elle est de " + ligne_grille.length() + ".");
-      }
-
-      ///  Un par un, nous allons sauvegarder la valeur des différents
-      ///    charactères, en nous assurant qu'ils soient valable
-      for (int colonne = 0; colonne < taille_grille; ++colonne) {
-        ///  La colonne actuelle est colonne, mais la ligne actuelle
-        ///    est ligne - 1 car nous avons commencé à ligne = 1.
-        ///  Nous faisons i - '0' pour obtenir le chiffre associé
-        grille.ruban[colonne + ((ligne - 1) * taille_grille)] =
-          ligne_grille.charAt(colonne) - '0';
-        grille.modifiables[colonne + ((ligne - 1) * taille_grille)] =
-          ligne_grille.charAt(colonne) == '2';
-
-        /// Si le chiffre n'est pas dans {0, 1, 2}
-        if (grille.ruban[colonne + ((ligne - 1) * taille_grille)] < 0 || 
-          grille.ruban[colonne + ((ligne - 1) * taille_grille)] > 2) {
-          throw new RuntimeException(
-            "Inconsistence trouvé dans le fichier \"" +
-            fichier_grille.getAbsolutePath() + "\", ligne " +
-            ligne + ", colonne " + colonne + ", le caractère '" + 
-            + ligne_grille.charAt(colonne) +
-            "' n'est pas dans {'0', '1', '2'}.");
-        }
-      }
-    }
-
-    //////////////////////////////////////////////////////////////////////80 chars
-    ///  On va ensuite faire de même pour la grille solution
-    grille.solution = new int[grille.taille * grille.taille];
-    for (int ligne = 1; ligne < lignes_solution.length; ++ligne) {
-      ligne_solution = lignes_solution[ligne].trim();
-      if (taille_grille != ligne_solution.length()) {
-        throw new RuntimeException(
-          "Inconsistence trouvé dans le fichier \"" +
-          fichier_solution.getAbsolutePath() + "\", ligne " +
-          ligne + ", la taille devrait être de " + taille_solution
-          + ", mais elle est de " + ligne_solution.length() + ".");
-      }
-      for (int colonne = 0; colonne < taille_solution; ++colonne) {
-        grille.solution[colonne + ((ligne - 1) * taille_solution)] =
-          ligne_solution.charAt(colonne) - '0';
-        if ((grille.solution[colonne + ((ligne - 1) * taille_solution)] < 0) || 
-          (grille.solution[colonne + ((ligne - 1) * taille_solution)] > 2)) {
-          throw new RuntimeException(
-            "Inconsistence trouvé dans le fichier \"" +
-            fichier_solution.getAbsolutePath() + "\", ligne " +
-            ligne + ", colonne " + colonne + ", le caractère '" + 
-            + ligne_solution.charAt(colonne) +
-            "' n'est pas dans {'0', '1', '2'}.");
-        }
-      }
-    }
+  Grille grille = null;
+  int index = 1;
+  while ((grille = chargerGrille(prefix + index, index++)) != null) {
     grilles.add(grille);
   }
+
   ///  Si nous ne trouvons pas assez de fichiers, alors il y a une erreur
   if (grilles.size() < 5) {
-    /// Afficher les fichiers, pour voir ce qui coince
-    for (int i = 1; i < 6; i++) {
-      File init = new File(prefix + i + suffix_grille), soluce = new File(prefix + i + suffix_solution);
-      init = (new File(init.getAbsolutePath()));
-      soluce = (new File(soluce.getAbsolutePath()));
-      println();
-      println(init.getAbsolutePath(), init.exists() ? "existe" : "n'existe pas");
-      println(soluce.getAbsolutePath(), soluce.exists() ? "existe" : "n'existe pas");
-      println();
-      println(init.getAbsolutePath(), init.canRead() ? "peut" : "ne peut pas", "être lu");
-      println(soluce.getAbsolutePath(), soluce.canRead() ? "peut" : "ne peut pas", "être lu");
-    }
-    throw new RuntimeException("Les grilles n'ont pas été trouvées, (prefix='" + prefix + "', suffix_solution='" + suffix_solution + "', suffix_grille='" + suffix_grille + "').");
+    throw new RuntimeException("Les grilles n'ont pas été trouvées, (prefix='" + prefix + ").");
   }
   /// On crée les liens
   for (int i = 0; i < grilles.size(); ++i) {
@@ -545,9 +534,14 @@ ArrayList<Grille> chargerGrilles() {
   return chargerGrilles("data\\grilles\\", "grille");
 }
 
-/// En cas de problème, cette fonction est appelée, avec un fichier et un pointeur vers le tableau à modifier
-ArrayList<Grille> chargerGrilles(File file) {
+ArrayList<Grille> chargerGrillesAPartirDeDossier(File file) {
   return chargerGrilles(file.getAbsolutePath(), "grille");
+}
+
+Grille chargerGrille(File file) {
+  String path = file.getAbsolutePath();
+  /// .sol or .tak prennent 4 cases
+  return chargerGrille(path.substring(0, path.length() - 4), 0);
 }
 
 
@@ -700,54 +694,58 @@ boolean dumbSolverOneStep() {
   }
   return touched;
 }
-boolean shake = false, follow = false;
 int positionX = 0, positionY = 0;
 
 
 void debug() {
   redrawCirleFromMemory();
-  if (getState(FLAG_SHALL_NOT_GO_OUT) || true) {
-    /// Récupère la position de la fenêtre
-    java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
-    if (window != null) {
-      float x = window.getX();
-      float y = window.getY();
 
+  /// Get states
+  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
+  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
+  if (window != null) {
+    /// Récupère la position de la fenêtre
+    float newX = window.getX();
+    float newY = window.getY();
+
+    if (getState(FLAG_GRID_FOLLOWS_MOUSE)) {
+      dimensions_grille_x = ((mouseAbsolutePosition.getLocation().x + offset.x - newX) / width) - (dimensions_grille_w / 2);
+      dimensions_grille_y = ((mouseAbsolutePosition.getLocation().y + offset.y - newY) / height) - (dimensions_grille_h / 2);
+    }
+    if (getState(FLAG_WINDOW_CENTERED_ON_GRID)) {
       /// We take the relative position, then we substract 1 / 2 to have a location relative to the center
       ///  NOTE: ((a + b) / 2) + (c / 2) = (a + b + c) / 2
       float relativeOffsetX = ((dimensions_grille_x + dimensions_grille_x + dimensions_grille_w - 1) / 2);
       float relativeOffsetY = ((dimensions_grille_y + dimensions_grille_y + dimensions_grille_h - 1) / 2);
 
-      x += relativeOffsetX * width;
-      y += relativeOffsetY * height;
-      
+      newX += relativeOffsetX * width;
+      newY += relativeOffsetY * height;
+
       dimensions_grille_x -= relativeOffsetX;
       dimensions_grille_y -= relativeOffsetY;
-
-      println(x, y);
-      
-      /// Still in screen
-      x = max(0, min(x, displayWidth - width));
-      y = max(0, min(y, displayHeight - height));
-
-      surface.placeWindow(new int[] {int(x), int(y)}, new int[] {});
-
     }
-  }
-  if (shake) {
-    surface.setSize(width - (random(-10, 10) < 0 ? 1 : -1), height + (random(-10, 10) < 0 ? 1 : -1));
-    //surface.placeWindow(new int[] {((java.awt.)(surface.getNative())).getX() - (random(-10, 10) < 0 ? 1 : -1), ((java.awt.Frame)(surface.getNative())).getY() + (random(-10, 10) < 0 ? 1 : -1)},
-    //                    new int[] {width , height});
-  }
-  if (follow) {
-    /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
-    int x = java.awt.MouseInfo.getPointerInfo().getLocation().x;
-    int y = java.awt.MouseInfo.getPointerInfo().getLocation().y;
-    int a = 50;
-    positionX = ((a * positionX) + x - width / 2) / (a + 1);
-    positionY = ((a * positionY) + y - height / 2) / (a + 1);
-    surface.placeWindow(new int[] {positionX, positionY}, 
-      new int[] {0, 0});
+    if (getState(FLAG_WINDOW_FULLY_INSIDE_SCREEN)) {
+      newX = max(0, min(newX, displayWidth - width));
+      newY = max(0, min(newY, displayHeight - height));
+    }
+
+    if (getState(FLAG_SHAKE_WINDOW)) {
+      float a = 0.5;
+      float w = float(width) - (random(-100, 100) > 0 ? a : -a);
+      float h = float(height)- (random(-100, 100) > 0 ? a : -a);
+      w = (w + w + w + h) / 4;
+      h = (w + h + h + h) / 4;
+      surface.setSize(int(w), int(h));
+      newX += random(-a, a);
+      newY += random(-a, a);
+    }
+    if (getState(FLAG_WINDOW_FOLLOWS_MOUSE)) {
+      /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
+      int a = 50;
+      newX = ((a * positionX) + mouseAbsolutePosition.getLocation().x - width / 2) / (a + 1);
+      newY = ((a * positionY) + mouseAbsolutePosition.getLocation().y - height / 2) / (a + 1);
+    }
+    surface.placeWindow(new int[] {int(newX), int(newY)}, new int[] {0, 0});
   }
 }
 
