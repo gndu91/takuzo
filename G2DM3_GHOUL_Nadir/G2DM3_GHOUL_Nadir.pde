@@ -22,6 +22,10 @@ class Grille {
   int index;
   Grille suivante;
 };
+class Bouton {
+  int index;
+  String text;
+};
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// TODO: ChangeListe
@@ -33,7 +37,6 @@ Grille courante;
 /// Paramètres
 ArrayList<PImage> images;
 
-float[] dimensionsGrilles;
 // 0 Modifiable -> 0 Constant -> 1 Modifiable -> 1 constant -> Vide modifiable # -> Vide constant 
 PImage[] cases;
 
@@ -49,8 +52,7 @@ PVector offset;
 void settings() {
   /// Le code qui suit servira à se placer dans le bon dossier, au lieu de démarrer dans le dossier d'installation de processing
   /// https://processing.github.io/processing-javadocs/core/
-  String AppSketchPath = sketchPath();
-  if (System.setProperty("user.dir", AppSketchPath) == null) {
+  if (System.setProperty("user.dir", sketchPath()) == null) {
     throw new RuntimeException("Erreur, impossible de se placer dans le bon répertoire");
   }
   size(500, 500);
@@ -64,8 +66,10 @@ void setup() {
   /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
   surface.setResizable(true);
   surface.setTitle("Takuzo");
-
   function();
+  //////////////////////////////////
+  setState(VIEW_GAME, true);
+  setState(CURRENTLY_PLAYING, true);
 }
 
 /**
@@ -73,23 +77,157 @@ void setup() {
  */
 void draw() {
   background(255);
-  afficherGrille();
+  fill(200);
+  /// TODO: Each call will have to specify rectMode
+  rectMode(CORNERS);
+  rect(origin()[0], origin()[1], dimEcran()[0], dimEcran()[1]);
+  rectMode(CORNER);
+  updateDims();
+  if (getState(LATERAL_RIGHT_SHOWN)) {
+    afficherLateralDroit();
+  }
+  if (getState(SHOW_GRID)) {
+    afficherGrille();
+  }
   debug();
-  
+}
+Bouton[] recupererBoutons() {
+  Bouton[] list = new Bouton[] {new Bouton() {{
+    void onClick() {
+      throw new RuntimeException();
+    }
+  }}, new Bouton()};
+  list[0].text = "Open...";
+  list[0].index = 0;
+  list[1].text = "Save...";
+  list[0].index = 1;
+  return list;
+}
+void afficherLateralDroit() {
+  for (Bouton i : recupererBoutons()) {
+    int h = 64, w = lateralRightPanel;
+    fill(128);
+    rect(dimEcran()[0] + 1, 64, w, h);
+    textAlign(CENTER, CENTER);
+    fill(0);
+    text(i.text, dimEcran()[0] + (w / 2), 64 + (h / 2));
+  }
 }
 
 void mouseMoved() {
-  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
-  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
-  if(window != null) {
-    /// On recupere les deux valeurs relatives
-    offset.x = (float) ((mouseX) - (mouseAbsolutePosition.getX() - window.getX()));
-    offset.y = (float) ((mouseY) - (mouseAbsolutePosition.getY() - window.getY()));
-  }
-  println(offset);
+  updateOffset();
 }
 
+/// /////////////////////////////////////////////////////////////////////////////////////////
+/// Fonctions et variables relatives aux dimensions
+///
 float dimensions_grille_w, dimensions_grille_h, dimensions_grille_x, dimensions_grille_y;
+
+/// Les variables du dessous devront être mises à jour en fonction de celles du dessus
+float dimensions_grille_abs_x_0, dimensions_grille_abs_y_0;
+float dimensions_grille_abs_x_1, dimensions_grille_abs_y_1;
+float dimensions_grille_abs_w, dimensions_grille_abs_h;
+float dimensions_grille_abs_unit_w, dimensions_grille_abs_unit_h;/// Taille d'une case
+void updateDims() {
+  if (getState(ALWAYS_SQUARE))
+    reSquare();
+  /// Affiche progressivement le menu latéral
+  int animation_speed = 1;
+  if (getState(SHOW_LATERAL_RIGHT)) {
+    setState(LATERAL_RIGHT_SHOWN, true);
+    if (lateralRightPanel < lateralRightWidth) {
+      surface.setSize(width + animation_speed, height);
+      lateralRightPanel += animation_speed;
+    }
+  } else {
+    if (lateralRightPanel > -1) {
+      surface.setSize(width - animation_speed, height);
+      lateralRightPanel -= animation_speed;
+    } else {
+      setState(LATERAL_RIGHT_SHOWN, false);
+    }
+  }
+  dimensions_grille_abs_x_0 = offset.x + (dimEcran()[0] * dimensions_grille_x);
+  dimensions_grille_abs_y_0 = offset.y + (height * dimensions_grille_y);
+  dimensions_grille_abs_x_1 = dimensions_grille_abs_x_0 + dimEcran()[0] * dimensions_grille_w;
+  dimensions_grille_abs_y_1 = dimensions_grille_abs_y_0 + height * dimensions_grille_h;
+  dimensions_grille_abs_w = dimEcran()[0] * dimensions_grille_w;
+  dimensions_grille_abs_h = height * dimensions_grille_h;
+  dimensions_grille_abs_unit_w = dimensions_grille_abs_w / courante.taille;
+  dimensions_grille_abs_unit_h = dimensions_grille_abs_h / courante.taille;
+}
+void zoom(float agrandissement) {
+  dimensions_grille_x += dimensions_grille_w / 2;
+  dimensions_grille_y += dimensions_grille_h / 2;
+  dimensions_grille_w *= (1 - agrandissement);
+  dimensions_grille_h *= (1 - agrandissement);
+  dimensions_grille_x -= dimensions_grille_w / 2;
+  dimensions_grille_y -= dimensions_grille_h / 2;
+  updateDims();
+}
+void shiftRel(float x, float y) {
+  dimensions_grille_x += x;
+  dimensions_grille_y += y;
+  updateDims();
+}
+void shiftAbs(float x, float y) {
+  dimensions_grille_x += x * dimEcran()[0];
+  dimensions_grille_y += y * height;
+  updateDims();
+}
+void relocate(int x, int y) {  
+  dimensions_grille_x += x / dimEcran()[0];
+  dimensions_grille_y += y / height;
+  updateDims();
+}
+void updateOffset() {
+  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
+  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
+  if (window != null) {
+    /// On recupere les deux valeurs relatives
+    offset.x = (float) (float(mouseX) - (mouseAbsolutePosition.getX() - window.getX()));
+    offset.y = (float) (float(mouseY) - (mouseAbsolutePosition.getY() - window.getY()));
+  }
+}
+void reSquare() {
+  float ratio = float(dimEcran()[0]) / height;
+
+  float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
+
+  dimensions_grille_x += dimensions_grille_w / 2;
+  dimensions_grille_y += dimensions_grille_h / 2;
+
+  dimensions_grille_h = mean * ratio;
+  dimensions_grille_w = mean;//  / ratio;
+
+  dimensions_grille_x -= dimensions_grille_w / 2;
+  dimensions_grille_y -= dimensions_grille_h / 2;
+}
+float[][] getLocations() {
+  /// [x0, y0, x1, y1, w, h] -> en pixels
+  float[][] locations = new float[courante.taille][6];
+  for (int i = 0; i < courante.taille; ++i) {
+    locations[i][0] = dimensions_grille_abs_x_0 + ((i % courante.taille) * dimensions_grille_abs_unit_w);
+    locations[i][1] = dimensions_grille_abs_y_0 + ((i / courante.taille) * dimensions_grille_abs_unit_h);
+
+    locations[i][4] = dimensions_grille_abs_unit_w;
+    locations[i][5] = dimensions_grille_abs_unit_h;
+
+    locations[i][2] = locations[i][0] + locations[i][4];
+    locations[i][3] = locations[i][1] + locations[i][5];
+  }
+  return locations;
+}
+final int lateralRightWidth = 128;
+int lateralRightPanel = 0;
+int[] dimEcran() {
+  return new int[]{width - lateralRightPanel, height};
+}
+int[] origin() {
+  return new int[]{0, 0};
+}
+/// /////////////////////////////////////////////////////////////////////////////////////////
+
 
 color[] grille_couleurs;
 String grille_affichage_type;
@@ -111,6 +249,8 @@ void init() {
     grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
     offset = new PVector(0, 0, 0);
 
+    setState(ALWAYS_SQUARE, true);
+
     /// TODO: Initialiser les variables ici, puis
     ///  saveConfig()
   }
@@ -128,140 +268,101 @@ void init() {
  *  TODO: Plusieurs layouts
  */
 void afficherGrille(Grille grille, PImage[] images) {
-  int taille = (int) sqrt(grille.ruban.length);
-  if (taille*taille != grille.ruban.length) {
-    throw new RuntimeException("Grille non carrée");
-  }
-
-  float w = dimensions_grille_w * (width / taille);
-  float h = dimensions_grille_h * (height / taille);
-
-  float x0 = dimensions_grille_x * width;
-  float y0 = dimensions_grille_y * height;
-
-  for (int i = 0; i < taille; ++i)
-    for (int j = 0; j < taille; ++j) {
-      int index = i + (taille*j);
+  float w = dimensions_grille_w * (dimEcran()[0] / grille.taille);
+  float h = dimensions_grille_h * (height / grille.taille);
+  for (int i = 0; i < grille.taille; ++i)
+    for (int j = 0; j < grille.taille; ++j) {
+      int index = i + (grille.taille*j);
       int etat = (grille.ruban[index] > 1 ? 4 : (grille.ruban[index]*2 + int(grille.modifiables[index])));
-      float x = x0 + (i * w);
-      float y = y0 + (j * h);
+      float x = dimensions_grille_abs_x_0 + (i * w);
+      float y = dimensions_grille_abs_y_0 + (j * h);
       fill(grille_couleurs[etat]);
       rect(x, y, w, h);
     }
 }
+void afficherGrille() {
+  afficherGrille(courante, cases);
+}
+
 
 
 void mousePressed() {
-  int taille = (int) sqrt(courante.ruban.length);
-
-  float w = dimensions_grille_w * (width / taille);
-  float h = dimensions_grille_h * (height / taille);
-
-  float x0 = dimensions_grille_x * width;
-  float y0 = dimensions_grille_y * height;
-
-
-  int i = (int) ((mouseX - x0) / w);
-  int j = (int) ((mouseY - y0) / h);
-
-  int index = i + (taille * j);
-
-  if (i > -1 && i < taille) {
-    if (j > -1 && j < taille) {
-      if (courante.modifiables[index]) {
-        courante.ruban[index] = (courante.ruban[index] + 1) % 3;
-      }
-      println(i, j);
-    }
+  if (getState(VIEW_GAME) && getState(CURRENTLY_PLAYING)) {
+    /// Nous allons prendre les coordonées de la souris, puis nous allons les remapper, en partant de
+    ///  leurs positions en pixels, et en les "castant" dans les dimensions de la grille, puis nous
+    ///  récupérons l'index, en voyant la grille comme étant un ruban qui dépasse par la droite et
+    ///  qui se prolonge dans la ligne d'après, à gauche. Nous nous assurons que nous soyons bien dans
+    ///  la ligne, puis nous vérifions si nous avons le pouvoir de la modifier, enfin, nous incrémentons
+    ///  la valeur de la case, % 3 pour passer successivement de 0 à 1, puis à 2, puis à 0, etc.    
+    int i = (int) map(mouseX, dimensions_grille_abs_x_0, dimensions_grille_abs_x_1, 0, courante.taille);
+    int j = (int) map(mouseY, dimensions_grille_abs_y_0, dimensions_grille_abs_y_1, 0, courante.taille);
+    int index = i + (courante.taille * j);
+    if (i > -1 && j > -1 && i < courante.taille && j < courante.taille && courante.modifiables[index])
+      courante.ruban[index] = (courante.ruban[index] + 1) % 3;
   }
 }
+
 void mouseWheel(MouseEvent event) {
-  float agrandissement = float(event.getCount()) / 10;
-
-  println(agrandissement);
-
-  dimensions_grille_x += dimensions_grille_w / 2;
-  dimensions_grille_y += dimensions_grille_h / 2;
-
-  dimensions_grille_w *= (1 - agrandissement);
-  dimensions_grille_h *= (1 - agrandissement);
-
-  dimensions_grille_x -= dimensions_grille_w / 2;
-  dimensions_grille_y -= dimensions_grille_h / 2;
+  zoom(float(event.getCount()) / 10);
 }
 
+void cleanBoard() {
+  for (int i = 0; i < courante.modifiables.length; ++i) 
+    if (courante.modifiables[i]) 
+      courante.ruban[i] = 2;
+}
 
 void keyPressed() {
-  if (key == BACKSPACE) {
-    for (int i = 0; i < courante.modifiables.length; ++i) {
-      if (courante.modifiables[i]) {
-        courante.ruban[i] = 2;
+  if (key == '*') {
+    changeState(SHOW_LATERAL_RIGHT);
+  } else
+    if (getState(VIEW_GAME) && getState(EDIT_MODE)) {
+      if (key == BACKSPACE) {
+        cleanBoard();
+      } else if (key == ENTER) {
+        courante = courante.suivante;
+      } else if (key == TAB) {
+        dumbSolverOneStep();
+      } else if (key >= '1' && key <= '9') {
+        float _x = ((float) (mouseX)) / dimEcran()[0];
+        float _y = ((float) (mouseY)) / height;
+
+        if (key == '1' || key == '4' || key == '7') {
+          dimensions_grille_w += dimensions_grille_x - _x;
+          dimensions_grille_x = _x;
+        }
+        if (key == '7' || key == '8' || key == '9') {
+          dimensions_grille_h += dimensions_grille_y - _y;
+          dimensions_grille_y = _y;
+        }      
+
+        if (key == '9' || key == '6' || key == '3') {
+          dimensions_grille_w = _x - dimensions_grille_x;
+        }
+        if (key == '3' || key == '2' || key == '1') {
+          dimensions_grille_h = _y - dimensions_grille_y;
+        }
+
+        if (key == '5') {
+          reSquare();
+        }
+      } else if (key == 'm') {
+        changeState(FLAG_GRID_FOLLOWS_MOUSE);
+      } else if (key == '+' || key == '-') {
+        zoom(key == '+' ? -0.1 : 0.1);
+      } else if (key == CODED && ((keyCode == UP) || (keyCode == DOWN) || (keyCode == RIGHT) || (keyCode == LEFT))) {
+        float step = 0.01;
+        shiftRel(((keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0), ((keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0));
+      } else if (key == 'f') {
+        changeState(FLAG_FULLSCREEN);
+      } else if (key == 's') {
+        changeState(FLAG_SHAKE_WINDOW);
+      } else if (key == '.' && false) {
+        changeState(FLAG_WINDOW_FOLLOWS_MOUSE);
+      } else if (key == '.') {
+        changeState(FLAG_WINDOW_CENTERED_ON_GRID);
       }
     }
-  } else if (key == ENTER) {
-    courante = courante.suivante;
-  } else if (key == TAB) {
-    dumbSolverOneStep();
-  } else if (key >= '1' && key <= '9') {
-    float _x = ((float) (mouseX)) / width;
-    float _y = ((float) (mouseY)) / height;
-
-    if (key == '1' || key == '4' || key == '7') {
-      dimensions_grille_w += dimensions_grille_x - _x;
-      dimensions_grille_x = _x;
-    }
-    if (key == '7' || key == '8' || key == '9') {
-      dimensions_grille_h += dimensions_grille_y - _y;
-      dimensions_grille_y = _y;
-    }      
-
-    if (key == '9' || key == '6' || key == '3') {
-      dimensions_grille_w = _x - dimensions_grille_x;
-    }
-    if (key == '3' || key == '2' || key == '1') {
-      dimensions_grille_h = _y - dimensions_grille_y;
-    }
-
-    if (key == '5') {
-      float ratio = float(width) / height;
-
-      float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
-      mean = min(dimensions_grille_w, dimensions_grille_h, mean);
-
-      dimensions_grille_x += dimensions_grille_w / 2;
-      dimensions_grille_y += dimensions_grille_h / 2;
-
-      dimensions_grille_h = mean * ratio;
-      dimensions_grille_w = mean;//  / ratio;
-
-      dimensions_grille_x -= dimensions_grille_w / 2;
-      dimensions_grille_y -= dimensions_grille_h / 2;
-    }
-  } else if (key == 'm') {
-    changeState(FLAG_GRID_FOLLOWS_MOUSE);
-  } else if (key == '+' || key == '-') {
-    float step = (key == '-' ? -1 : 1) * 0.01;
-    dimensions_grille_x = dimensions_grille_x - step;
-    dimensions_grille_y = dimensions_grille_y - step;
-    dimensions_grille_w = dimensions_grille_w + 2 * step;
-    dimensions_grille_h = dimensions_grille_h + 2 * step;
-  } else if (key == CODED && ((keyCode == UP) || (keyCode == DOWN) || (keyCode == RIGHT) || (keyCode == LEFT))) {
-    float step = 0.01;
-    dimensions_grille_x = (dimensions_grille_x + ((keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0));
-    dimensions_grille_y = (dimensions_grille_y + ((keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0));
-  } else if (key == 'f') {
-    changeState(FLAG_FULLSCREEN);
-  } else if (key == 's') {
-    changeState(FLAG_SHAKE_WINDOW);
-  } else if (key == '.' && false) {
-    changeState(FLAG_WINDOW_FOLLOWS_MOUSE);
-  } else if (key == '.') {
-    changeState(FLAG_WINDOW_CENTERED_ON_GRID);
-  }
-}
-
-void afficherGrille() {
-  afficherGrille(courante, cases);
 }
 
 
@@ -296,12 +397,40 @@ final long FLAG_SHAKE_WINDOW = (flag_cursor <<= 1);
 final long FLAG_WINDOW_FOLLOWS_MOUSE = (flag_cursor <<= 1);
 final long FLAG_FULLSCREEN = (flag_cursor <<= 1);
 
-/**
- Change l'état d'un paramètre
- Retourne si l'état a été changé
- */
+/// Vues
+final long EDIT_MODE = (flag_cursor <<= 1);
+final long CURRENTLY_PLAYING = (flag_cursor <<= 1);
+final long ALWAYS_SQUARE = (flag_cursor <<= 1);
+final long LATERAL_RIGHT_SHOWN = (flag_cursor <<= 1);
+///
+final long SHOW_GRID = (flag_cursor <<= 1);
+final long SHOW_SCORE = (flag_cursor <<= 1);
+final long SHOW_LATERAL_RIGHT = (flag_cursor <<= 1);
+///
+final long VIEW_HOME = (flag_cursor <<= 1);
+final long VIEW_GAME = (flag_cursor <<= 1) | SHOW_GRID | SHOW_SCORE;
+final long FREE_SLOT_17 = (flag_cursor <<= 1);
+final long FREE_SLOT_18 = (flag_cursor <<= 1);
+final long FREE_SLOT_19 = (flag_cursor <<= 1);
+final long FREE_SLOT_20 = (flag_cursor <<= 1);
+final long FREE_SLOT_21 = (flag_cursor <<= 1);
+final long FREE_SLOT_22 = (flag_cursor <<= 1);
+final long FREE_SLOT_23 = (flag_cursor <<= 1);
+final long FREE_SLOT_24 = (flag_cursor <<= 1);
+final long FREE_SLOT_25 = (flag_cursor <<= 1);
+final long FREE_SLOT_26 = (flag_cursor <<= 1);
+final long FREE_SLOT_27 = (flag_cursor <<= 1);
+final long FREE_SLOT_28 = (flag_cursor <<= 1);
+final long FREE_SLOT_29 = (flag_cursor <<= 1);
+final long FREE_SLOT_30 = (flag_cursor <<= 1);
+final long FREE_SLOT_31 = (flag_cursor <<= 1);
+final long FREE_SLOT_32 = (flag_cursor <<= 1);
+
+/// //////////////////////////////////////////////////////////////////////////////////////////////////
+/// Pour faire une vue, il nous faut un certain nombre de parametres, et cette fois ci, nous testerons
+///  toutes les "composantes" pour savoir si le "flag" est activé
 boolean getState(long flag) {
-  return (flag & current_state) != 0;
+  return (flag & current_state) == flag;
 }
 
 void setState(long flag, boolean newState) {
@@ -312,10 +441,13 @@ void setState(long flag, boolean newState) {
   }
 }
 
-/// Change the state and return the new state
+/// Change the state and return the new state,
+///  nous ne nous embeterons pas à savoir quoi
+///  activer, nous allons juste activer si un
+///  des bit est à 0, sinon, nous allons désactiver
 boolean changeState(long flag) {
-  if((flag & FLAG_FULLSCREEN) != 0) {
-     surface.getNative().fullScreen();
+  if ((flag & FLAG_FULLSCREEN) != 0) {
+    // surface.getNative();
   }
   if (getState(flag)) {
     setState(flag, false);
@@ -325,6 +457,7 @@ boolean changeState(long flag) {
     return true;
   }
 }
+
 
 Grille chargerGrille(String path, int index) {
   /// On déclare les variables
@@ -350,14 +483,15 @@ Grille chargerGrille(String path, int index) {
   ///  Nous allons commencer par la grille initiale, en se rappelant que les fichiers commencent avec l'index 1
   fichier_grille = new File(path + suffix_grille);
   fichier_solution = new File(path + suffix_solution);
-  /// Lecture des lignes
-  lignes_grille = loadStrings(fichier_grille);
-  lignes_solution = loadStrings(fichier_solution);
 
   /// Vérification peut-être superflue, mais on n'est jamais trop sûr
   if (!fichier_grille.canRead() || !fichier_solution.canRead()) {
     return null;
   }
+
+  /// Lecture des lignes
+  lignes_grille = loadStrings(fichier_grille);
+  lignes_solution = loadStrings(fichier_solution);
 
   /// S'assure que les fichiers soit biens lus
   /// On lis la premiere ligne des deux fichiers
@@ -623,15 +757,15 @@ void putCircle(String type, PVector pos, PVector dim, color couleur, String text
       fill(couleur);
       ellipse(
         ///        centré   centré      
-        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
+        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]), 
         map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height), 
-        dim.x * dimensions_grille_w * width / size, 
+        dim.x * dimensions_grille_w * dimEcran()[0] / size, 
         dim.y * dimensions_grille_h * height / size 
         );
       filter(INVERT);
       text(
         texte, 
-        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * width, (dimensions_grille_x + dimensions_grille_w) * width), 
+        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]), 
         map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height)
         );
       filter(INVERT);
@@ -709,7 +843,7 @@ void debug() {
     float newY = window.getY();
 
     if (getState(FLAG_GRID_FOLLOWS_MOUSE)) {
-      dimensions_grille_x = ((mouseAbsolutePosition.getLocation().x + offset.x - newX) / width) - (dimensions_grille_w / 2);
+      dimensions_grille_x = ((mouseAbsolutePosition.getLocation().x + offset.x - newX) / dimEcran()[0]) - (dimensions_grille_w / 2);
       dimensions_grille_y = ((mouseAbsolutePosition.getLocation().y + offset.y - newY) / height) - (dimensions_grille_h / 2);
     }
     if (getState(FLAG_WINDOW_CENTERED_ON_GRID)) {
@@ -718,20 +852,20 @@ void debug() {
       float relativeOffsetX = ((dimensions_grille_x + dimensions_grille_x + dimensions_grille_w - 1) / 2);
       float relativeOffsetY = ((dimensions_grille_y + dimensions_grille_y + dimensions_grille_h - 1) / 2);
 
-      newX += relativeOffsetX * width;
+      newX += relativeOffsetX * dimEcran()[0];
       newY += relativeOffsetY * height;
 
       dimensions_grille_x -= relativeOffsetX;
       dimensions_grille_y -= relativeOffsetY;
     }
     if (getState(FLAG_WINDOW_FULLY_INSIDE_SCREEN)) {
-      newX = max(0, min(newX, displayWidth - width));
+      newX = max(0, min(newX, displayWidth - dimEcran()[0]));
       newY = max(0, min(newY, displayHeight - height));
     }
 
     if (getState(FLAG_SHAKE_WINDOW)) {
       float a = 0.5;
-      float w = float(width) - (random(-100, 100) > 0 ? a : -a);
+      float w = float(dimEcran()[0]) - (random(-100, 100) > 0 ? a : -a);
       float h = float(height)- (random(-100, 100) > 0 ? a : -a);
       w = (w + w + w + h) / 4;
       h = (w + h + h + h) / 4;
@@ -742,7 +876,7 @@ void debug() {
     if (getState(FLAG_WINDOW_FOLLOWS_MOUSE)) {
       /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
       int a = 50;
-      newX = ((a * positionX) + mouseAbsolutePosition.getLocation().x - width / 2) / (a + 1);
+      newX = ((a * positionX) + mouseAbsolutePosition.getLocation().x - dimEcran()[0] / 2) / (a + 1);
       newY = ((a * positionY) + mouseAbsolutePosition.getLocation().y - height / 2) / (a + 1);
     }
     surface.placeWindow(new int[] {int(newX), int(newY)}, new int[] {0, 0});
