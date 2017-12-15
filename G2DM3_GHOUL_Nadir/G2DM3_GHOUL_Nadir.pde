@@ -22,10 +22,70 @@ class Grille {
   int index;
   Grille suivante;
 };
-class Bouton {
-  int index;
+abstract class Bouton {
   String text;
+  abstract void onClick();
 };
+class Switch extends Bouton {
+  /// 0    1   2
+  /// Off->On->Disabled
+  color[] couleurs = {#00ff00, #ff0000, #999999};
+  int etat;
+  void onClick() {
+    if (etat < 2) {
+      etat = (etat + 1) % 2;
+    }
+  }
+}
+
+class Menu {
+  Bouton[] boutons;
+  String nom;
+}
+
+Menu menuPrincipal() {
+  Menu menu = new Menu();
+  menu.nom = "Menu Principal";
+  menu.boutons = new Bouton[4];
+  int index = 0;
+  ////////////////////////////////
+  menu.boutons[index] = new Bouton() {
+    public void onClick() {
+      println("Opening...");
+    }
+  };
+  menu.boutons[index].text = "Close";
+  index++;////////////////////////
+  ////////////////////////////////
+  menu.boutons[index] = new Bouton() {
+    public void onClick() {
+      println("Opening...");
+    }
+  };
+  menu.boutons[index].text = "Close";
+  index++;////////////////////////
+  ////////////////////////////////
+  menu.boutons[index] = new Bouton() {
+    public void onClick() {
+      println("Opening...");
+    }
+  };
+  menu.boutons[index].text = "Close";
+  index++;////////////////////////
+  ////////////////////////////////
+  menu.boutons[index] = new Bouton() {
+    public void onClick() {
+      println("Opening...");
+    }
+  };
+  menu.boutons[index].text = "Close";
+  index++;////////////////////////
+  ////////////////////////////////
+
+  return menu;
+}
+
+Menu lateralRight = menuPrincipal();
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// TODO: ChangeListe
@@ -70,6 +130,7 @@ void setup() {
   //////////////////////////////////
   setState(VIEW_GAME, true);
   setState(CURRENTLY_PLAYING, true);
+  setState(ALWAYS_CENTERED, true);
 }
 
 /**
@@ -80,7 +141,7 @@ void draw() {
   fill(200);
   /// TODO: Each call will have to specify rectMode
   rectMode(CORNERS);
-  rect(origin()[0], origin()[1], dimEcran()[0], dimEcran()[1]);
+  rect(origin()[0], origin()[1], dimEcran()[0] - origin()[2], dimEcran()[1] - origin()[3]);
   rectMode(CORNER);
   updateDims();
   if (getState(LATERAL_RIGHT_SHOWN)) {
@@ -91,20 +152,8 @@ void draw() {
   }
   debug();
 }
-Bouton[] recupererBoutons() {
-  Bouton[] list = new Bouton[] {new Bouton() {{
-    void onClick() {
-      throw new RuntimeException();
-    }
-  }}, new Bouton()};
-  list[0].text = "Open...";
-  list[0].index = 0;
-  list[1].text = "Save...";
-  list[0].index = 1;
-  return list;
-}
 void afficherLateralDroit() {
-  for (Bouton i : recupererBoutons()) {
+  for (Bouton i : lateralRight.boutons) {
     int h = 64, w = lateralRightPanel;
     fill(128);
     rect(dimEcran()[0] + 1, 64, w, h);
@@ -129,10 +178,16 @@ float dimensions_grille_abs_x_1, dimensions_grille_abs_y_1;
 float dimensions_grille_abs_w, dimensions_grille_abs_h;
 float dimensions_grille_abs_unit_w, dimensions_grille_abs_unit_h;/// Taille d'une case
 void updateDims() {
-  if (getState(ALWAYS_SQUARE))
+  if (getState(ALWAYS_SQUARE)) 
     reSquare();
-  /// Affiche progressivement le menu latéral
+  if (getState(ALWAYS_CENTERED))
+    reCenterGrill();
+  if (getState(ALWAYS_FULL))
+    fullSize();
+  /// Affiche progressivement le menu latéral, si l'animation est 
   int animation_speed = 1;
+  if (getState(LATERAL_RIGHT_ANIMATION)) {
+  }
   if (getState(SHOW_LATERAL_RIGHT)) {
     setState(LATERAL_RIGHT_SHOWN, true);
     if (lateralRightPanel < lateralRightWidth) {
@@ -147,8 +202,8 @@ void updateDims() {
       setState(LATERAL_RIGHT_SHOWN, false);
     }
   }
-  dimensions_grille_abs_x_0 = offset.x + (dimEcran()[0] * dimensions_grille_x);
-  dimensions_grille_abs_y_0 = offset.y + (height * dimensions_grille_y);
+  dimensions_grille_abs_x_0 = (dimEcran()[0] * dimensions_grille_x);
+  dimensions_grille_abs_y_0 = (height * dimensions_grille_y);
   dimensions_grille_abs_x_1 = dimensions_grille_abs_x_0 + dimEcran()[0] * dimensions_grille_w;
   dimensions_grille_abs_y_1 = dimensions_grille_abs_y_0 + height * dimensions_grille_h;
   dimensions_grille_abs_w = dimEcran()[0] * dimensions_grille_w;
@@ -180,6 +235,15 @@ void relocate(int x, int y) {
   dimensions_grille_y += y / height;
   updateDims();
 }
+void reCenterGrill() {
+  dimensions_grille_x = (1 - dimensions_grille_w) / 2;
+  dimensions_grille_y = (1 - dimensions_grille_h) / 2;
+}
+void fullSize() {
+  // If width > height
+  if (canvas[5] > canvas[5]) {
+  }
+}
 void updateOffset() {
   java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
   java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
@@ -188,6 +252,9 @@ void updateOffset() {
     offset.x = (float) (float(mouseX) - (mouseAbsolutePosition.getX() - window.getX()));
     offset.y = (float) (float(mouseY) - (mouseAbsolutePosition.getY() - window.getY()));
   }
+  ///offset.x = -8;
+  ///offset.y = -31;
+  println(offset);
 }
 void reSquare() {
   float ratio = float(dimEcran()[0]) / height;
@@ -224,7 +291,7 @@ int[] dimEcran() {
   return new int[]{width - lateralRightPanel, height};
 }
 int[] origin() {
-  return new int[]{0, 0};
+  return new int[]{10, 10, 10, 10};
 }
 /// /////////////////////////////////////////////////////////////////////////////////////////
 
@@ -401,16 +468,19 @@ final long FLAG_FULLSCREEN = (flag_cursor <<= 1);
 final long EDIT_MODE = (flag_cursor <<= 1);
 final long CURRENTLY_PLAYING = (flag_cursor <<= 1);
 final long ALWAYS_SQUARE = (flag_cursor <<= 1);
-final long LATERAL_RIGHT_SHOWN = (flag_cursor <<= 1);
-///
+final long ALWAYS_CENTERED = (flag_cursor <<= 1);
+final long LATERAL_RIGHT_ANIMATION = (flag_cursor <<= 1);
+final long ALWAYS_FULL = (flag_cursor <<= 1);
+
+/// Widgets
 final long SHOW_GRID = (flag_cursor <<= 1);
 final long SHOW_SCORE = (flag_cursor <<= 1);
 final long SHOW_LATERAL_RIGHT = (flag_cursor <<= 1);
-///
+final long LATERAL_RIGHT_SHOWN = (flag_cursor <<= 1);
+/// Menus (ensembles de widgets)
 final long VIEW_HOME = (flag_cursor <<= 1);
 final long VIEW_GAME = (flag_cursor <<= 1) | SHOW_GRID | SHOW_SCORE;
-final long FREE_SLOT_17 = (flag_cursor <<= 1);
-final long FREE_SLOT_18 = (flag_cursor <<= 1);
+/// Slots libres
 final long FREE_SLOT_19 = (flag_cursor <<= 1);
 final long FREE_SLOT_20 = (flag_cursor <<= 1);
 final long FREE_SLOT_21 = (flag_cursor <<= 1);
@@ -425,6 +495,41 @@ final long FREE_SLOT_29 = (flag_cursor <<= 1);
 final long FREE_SLOT_30 = (flag_cursor <<= 1);
 final long FREE_SLOT_31 = (flag_cursor <<= 1);
 final long FREE_SLOT_32 = (flag_cursor <<= 1);
+final long FREE_SLOT_33 = (flag_cursor <<= 1);
+final long FREE_SLOT_34 = (flag_cursor <<= 1);
+final long FREE_SLOT_35 = (flag_cursor <<= 1);
+final long FREE_SLOT_36 = (flag_cursor <<= 1);
+final long FREE_SLOT_37 = (flag_cursor <<= 1);
+final long FREE_SLOT_38 = (flag_cursor <<= 1);
+final long FREE_SLOT_39 = (flag_cursor <<= 1);
+final long FREE_SLOT_40 = (flag_cursor <<= 1);
+final long FREE_SLOT_41 = (flag_cursor <<= 1);
+final long FREE_SLOT_42 = (flag_cursor <<= 1);
+final long FREE_SLOT_43 = (flag_cursor <<= 1);
+final long FREE_SLOT_44 = (flag_cursor <<= 1);
+final long FREE_SLOT_45 = (flag_cursor <<= 1);
+final long FREE_SLOT_46 = (flag_cursor <<= 1);
+final long FREE_SLOT_47 = (flag_cursor <<= 1);
+final long FREE_SLOT_48 = (flag_cursor <<= 1);
+final long FREE_SLOT_49 = (flag_cursor <<= 1);
+final long FREE_SLOT_50 = (flag_cursor <<= 1);
+final long FREE_SLOT_51 = (flag_cursor <<= 1);
+final long FREE_SLOT_52 = (flag_cursor <<= 1);
+final long FREE_SLOT_53 = (flag_cursor <<= 1);
+final long FREE_SLOT_54 = (flag_cursor <<= 1);
+final long FREE_SLOT_55 = (flag_cursor <<= 1);
+final long FREE_SLOT_56 = (flag_cursor <<= 1);
+final long FREE_SLOT_57 = (flag_cursor <<= 1);
+final long FREE_SLOT_58 = (flag_cursor <<= 1);
+final long FREE_SLOT_59 = (flag_cursor <<= 1);
+final long FREE_SLOT_60 = (flag_cursor <<= 1);
+final long FREE_SLOT_61 = (flag_cursor <<= 1);
+final long FREE_SLOT_62 = (flag_cursor <<= 1);
+final long FREE_SLOT_63 = (flag_cursor <<= 1);
+/// If this fails, there is too many flags
+{
+  assert flag_cursor != 0;
+}
 
 /// //////////////////////////////////////////////////////////////////////////////////////////////////
 /// Pour faire une vue, il nous faut un certain nombre de parametres, et cette fois ci, nous testerons
@@ -841,11 +946,12 @@ void debug() {
     /// Récupère la position de la fenêtre
     float newX = window.getX();
     float newY = window.getY();
-
+    if(true) {} else
     if (getState(FLAG_GRID_FOLLOWS_MOUSE)) {
       dimensions_grille_x = ((mouseAbsolutePosition.getLocation().x + offset.x - newX) / dimEcran()[0]) - (dimensions_grille_w / 2);
       dimensions_grille_y = ((mouseAbsolutePosition.getLocation().y + offset.y - newY) / height) - (dimensions_grille_h / 2);
     }
+    if(true) {} else
     if (getState(FLAG_WINDOW_CENTERED_ON_GRID)) {
       /// We take the relative position, then we substract 1 / 2 to have a location relative to the center
       ///  NOTE: ((a + b) / 2) + (c / 2) = (a + b + c) / 2
@@ -858,11 +964,12 @@ void debug() {
       dimensions_grille_x -= relativeOffsetX;
       dimensions_grille_y -= relativeOffsetY;
     }
+    if(true) {} else
     if (getState(FLAG_WINDOW_FULLY_INSIDE_SCREEN)) {
       newX = max(0, min(newX, displayWidth - dimEcran()[0]));
       newY = max(0, min(newY, displayHeight - height));
     }
-
+    if(true) {} else
     if (getState(FLAG_SHAKE_WINDOW)) {
       float a = 0.5;
       float w = float(dimEcran()[0]) - (random(-100, 100) > 0 ? a : -a);
@@ -873,6 +980,7 @@ void debug() {
       newX += random(-a, a);
       newY += random(-a, a);
     }
+    if(true) {} else
     if (getState(FLAG_WINDOW_FOLLOWS_MOUSE)) {
       /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
       int a = 50;
