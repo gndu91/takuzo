@@ -25,7 +25,6 @@ class Grille {
 abstract class Bouton {
   String text;
   abstract void onClick();
-  boolean over = false;
 };
 class Switch extends Bouton {
   /// 0    1   2
@@ -41,45 +40,21 @@ class Switch extends Bouton {
 
 class Menu {
   Bouton[] boutons;
-  float offset = 0;
-  float granularite = 68;
   String nom;
-  float tailleFinale = 256;
-  float taille = 0;
 }
 
 Menu menuPrincipal() {
   Menu menu = new Menu();
   menu.nom = "Menu Principal";
-  menu.boutons = new Bouton[6];
+  menu.boutons = new Bouton[4];
   int index = 0;
   ////////////////////////////////
   menu.boutons[index] = new Bouton() {
     public void onClick() {
-      println("Resetting...");
-      cleanBoard();
-      forgetAllCircles();
+      println("Opening...");
     }
   };
-  menu.boutons[index].text = "Clear Board";
-  index++;////////////////////////
-  ////////////////////////////////
-  menu.boutons[index] = new Bouton() {
-    public void onClick() {
-      println("Resetting...");
-      cleanBoard();
-    }
-  };
-  menu.boutons[index].text = "Clear Board - cases";
-  index++;////////////////////////
-  ////////////////////////////////
-  menu.boutons[index] = new Bouton() {
-    public void onClick() {
-      println("Resetting drafts...");
-      forgetAllCircles();
-    }
-  };
-  menu.boutons[index].text = "Clear Board - drafts";
+  menu.boutons[index].text = "Close";
   index++;////////////////////////
   ////////////////////////////////
   menu.boutons[index] = new Bouton() {
@@ -87,16 +62,15 @@ Menu menuPrincipal() {
       println("Opening...");
     }
   };
-  menu.boutons[index].text = "Open";
+  menu.boutons[index].text = "Close";
   index++;////////////////////////
   ////////////////////////////////
   menu.boutons[index] = new Bouton() {
     public void onClick() {
-      println("Thinking...");
-      dumbSolverOneStep();
+      println("Opening...");
     }
   };
-  menu.boutons[index].text = "Play";
+  menu.boutons[index].text = "Close";
   index++;////////////////////////
   ////////////////////////////////
   menu.boutons[index] = new Bouton() {
@@ -150,16 +124,13 @@ void settings() {
 void setup() {
   init();
   /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
-  changeState(true);
+  surface.setResizable(true);
   surface.setTitle("Takuzo");
+  function();
   //////////////////////////////////
   setState(VIEW_GAME, true);
   setState(CURRENTLY_PLAYING, true);
   setState(ALWAYS_CENTERED, true);
-
-  setState(SHOW_LATERAL_RIGHT, true);
-
-  put_bubble(0, "Welcome");
 }
 
 /**
@@ -179,53 +150,21 @@ void draw() {
   if (getState(SHOW_GRID)) {
     afficherGrille();
   }
-  drawBubbles();
   debug();
 }
-
-/// L'index du menu associé à un PVectore 
-int getIndex(PVector mouse) {
-  PVector[][] pos = getPositions();
-  for (int index = 0; index < pos.length; index++) {
-    PVector[]i = pos[index];
-    if (mouse.x > i[0].x && mouse.y > i[0].y) {
-      if (mouse.y < i[1].y && mouse.y < i[1].y) {
-        return index;
-      }
-    }
-  }
-  return -1;
-}
-/// Points a, b, dimensions
-PVector[][] getPositions() {
-  PVector[][] pos = new PVector[lateralRight.boutons.length][3];
-  float margins = lateralRight.taille / 10;
-  for (int index = 0; index < lateralRight.boutons.length; ++index) {
-    pos[index] = new PVector[] {
-      new PVector(dimEcran()[0] + margins, (lateralRight.granularite * index + 16) - lateralRight.offset), 
-      new PVector(), 
-      new PVector(lateralRight.taille - (2 * margins), 64)
-    };
-    pos[index][1] = PVector.add(pos[index][0], pos[index][2]);
-  }
-  return pos;
-}
-
-boolean mouseInLateral() {
-  return (width - mouseX) < lateralRight.taille;
-}
-
 void afficherLateralDroit() {
-  PVector[][] positions = getPositions();
-  for (int index = 0; index < lateralRight.boutons.length; ++index) {
-    Bouton i = lateralRight.boutons[index];
-    /// TODO: Onover
-    fill(i.over ? #00ff00: 128);
-    rect(positions[index][0].x, positions[index][0].y, positions[index][2].x, positions[index][2].y);
+  for (Bouton i : lateralRight.boutons) {
+    int h = 64, w = lateralRightPanel;
+    fill(128);
+    rect(dimEcran()[0] + 1, 64, w, h);
     textAlign(CENTER, CENTER);
     fill(0);
-    text(i.text, positions[index][0].x + (positions[index][2].x / 2), positions[index][0].y + (positions[index][2].y / 2));
+    text(i.text, dimEcran()[0] + (w / 2), 64 + (h / 2));
   }
+}
+
+void mouseMoved() {
+  updateOffset();
 }
 
 /// /////////////////////////////////////////////////////////////////////////////////////////
@@ -251,14 +190,14 @@ void updateDims() {
   }
   if (getState(SHOW_LATERAL_RIGHT)) {
     setState(LATERAL_RIGHT_SHOWN, true);
-    if (lateralRight.taille < lateralRight.tailleFinale) {
+    if (lateralRightPanel < lateralRightWidth) {
       surface.setSize(width + animation_speed, height);
-      lateralRight.taille += animation_speed;
+      lateralRightPanel += animation_speed;
     }
   } else {
-    if (lateralRight.taille > -1) {
+    if (lateralRightPanel > -1) {
       surface.setSize(width - animation_speed, height);
-      lateralRight.taille -= animation_speed;
+      lateralRightPanel -= animation_speed;
     } else {
       setState(LATERAL_RIGHT_SHOWN, false);
     }
@@ -302,23 +241,14 @@ void reCenterGrill() {
 }
 void fullSize() {
   // If width > height
-  /*if (canvas[5] > canvas[5]) {
-   }*/
-}
-void initOffSet() {
-  offset = new PVector( -4.0, -23.0, 0.0 );
 }
 void updateOffset() {
   java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
   java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
   if (window != null) {
     /// On recupere les deux valeurs relatives
-    /// Leaky sum
-    float ratio = 0.001;
-    float newX = ((float) (float(mouseX) - (mouseAbsolutePosition.getX() - window.getX())));
-    float newY = ((float) (float(mouseY) - (mouseAbsolutePosition.getY() - window.getY())));
-    offset.x = (offset.x * (1 - ratio)) + (newX * ratio);
-    offset.y = (offset.y * (1 - ratio)) + (newY * ratio);
+    offset.x = (float) (float(mouseX) - (mouseAbsolutePosition.getX() - window.getX()));
+    offset.y = (float) (float(mouseY) - (mouseAbsolutePosition.getY() - window.getY()));
   }
   ///offset.x = -8;
   ///offset.y = -31;
@@ -353,8 +283,10 @@ float[][] getLocations() {
   }
   return locations;
 }
+final int lateralRightWidth = 128;
+int lateralRightPanel = 0;
 int[] dimEcran() {
-  return new int[]{width - int(lateralRight.taille), height};
+  return new int[]{width - lateralRightPanel, height};
 }
 int[] origin() {
   return new int[]{10, 10, 10, 10};
@@ -380,9 +312,8 @@ void init() {
     grille_affichage_type = "couleurs";
 
     grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
-    initOffSet();
-    
-    init_bubbles();
+    offset = new PVector(0, 0, 0);
+
     setState(ALWAYS_SQUARE, true);
 
     /// TODO: Initialiser les variables ici, puis
@@ -403,7 +334,7 @@ void init() {
  */
 void afficherGrille(Grille grille, PImage[] images) {
   float w = dimensions_grille_w * (dimEcran()[0] / grille.taille);
-  float h = dimensions_grille_h * (dimEcran()[1] / grille.taille);
+  float h = dimensions_grille_h * (height / grille.taille);
   for (int i = 0; i < grille.taille; ++i)
     for (int j = 0; j < grille.taille; ++j) {
       int index = i + (grille.taille*j);
@@ -419,24 +350,8 @@ void afficherGrille() {
 }
 
 
-void mouseMoved() {
-  updateOffset();
-  if (getState(LATERAL_RIGHT_SHOWN)) {
-    int index = getIndex(new PVector(mouseX, mouseY));
-    for (int i = 0; i < lateralRight.boutons.length; ++i) {
-      lateralRight.boutons[i].over = (i == index);
-    }
-  }
-}
-
 
 void mousePressed() {
-  if (getState(LATERAL_RIGHT_SHOWN)) {
-    int index = getIndex(new PVector(mouseX, mouseY));
-    if (index > -1 && index < lateralRight.boutons.length) {
-      lateralRight.boutons[index].onClick();
-    }
-  }
   if (getState(VIEW_GAME) && getState(CURRENTLY_PLAYING)) {
     /// Nous allons prendre les coordonées de la souris, puis nous allons les remapper, en partant de
     ///  leurs positions en pixels, et en les "castant" dans les dimensions de la grille, puis nous
@@ -453,11 +368,7 @@ void mousePressed() {
 }
 
 void mouseWheel(MouseEvent event) {
-  if (mouseInLateral()) {
-    lateralRight.offset += lateralRight.granularite * event.getCount();
-  } else {
-    zoom(float(event.getCount()) / 10);
-  }
+  zoom(float(event.getCount()) / 10);
 }
 
 void cleanBoard() {
@@ -517,6 +428,137 @@ void keyPressed() {
         changeState(FLAG_WINDOW_CENTERED_ON_GRID);
       }
     }
+}
+
+
+/**
+ Paramètres généraux, un seul long, simple à sauvegarder, et ne nécéssitant que
+ la déclaration d'une variable et de constantes, cela pourra aussi être utile
+ d'utiliser cela pour pouvoir intercepter les modifications, par exemple afficher
+ tout les changements d'une variable en cas de compotement inhabituel.
+ Pour assigner aux flags une valeur, et pour m'assurer qu'il n'y aura pas deux fois
+ la même valeur, je peux les initialiser de deux manières:
+ 1/ A la main:
+ a = 0b0000000000000000000000000000000000000000000000000000000000000001L
+ b = 0b0000000000000000000000000000000000000000000000000000000000000010L
+ c = 0b0000000000000000000000000000000000000000000000000000000000000100L
+ 2/ Automatiquement
+ cur = 1L;
+ a = cur;
+ b = (cur << 1);
+ c = (cur << 1);
+ */
+long current_state = 0b0000000000000000000000000000000000000000000000000000000000000000L;
+long flag_cursor   = 1L; // Représente, si différent de 1, le nombre de flags au total
+///  S'il est vrai, la fenetre sera située de manière à ce que la grille ne dépasse pas,
+///    pour l'instant, nous nous contenterons de placer la fenetre pour que la grille
+///    soit au centre
+///  XXX: Mettre à jour ce commentaire en cas de changement de méthode
+final long FLAG_SHALL_NOT_GO_OUT = flag_cursor;
+final long FLAG_GRID_FOLLOWS_MOUSE = (flag_cursor <<= 1);
+final long FLAG_WINDOW_CENTERED_ON_GRID = (flag_cursor <<= 1);
+final long FLAG_WINDOW_FULLY_INSIDE_SCREEN = (flag_cursor <<= 1);
+final long FLAG_SHAKE_WINDOW = (flag_cursor <<= 1);
+final long FLAG_WINDOW_FOLLOWS_MOUSE = (flag_cursor <<= 1);
+final long FLAG_FULLSCREEN = (flag_cursor <<= 1);
+
+/// Vues
+final long EDIT_MODE = (flag_cursor <<= 1);
+final long CURRENTLY_PLAYING = (flag_cursor <<= 1);
+final long ALWAYS_SQUARE = (flag_cursor <<= 1);
+final long ALWAYS_CENTERED = (flag_cursor <<= 1);
+final long LATERAL_RIGHT_ANIMATION = (flag_cursor <<= 1);
+final long ALWAYS_FULL = (flag_cursor <<= 1);
+
+/// Widgets
+final long SHOW_GRID = (flag_cursor <<= 1);
+final long SHOW_SCORE = (flag_cursor <<= 1);
+final long SHOW_LATERAL_RIGHT = (flag_cursor <<= 1);
+final long LATERAL_RIGHT_SHOWN = (flag_cursor <<= 1);
+/// Menus (ensembles de widgets)
+final long VIEW_HOME = (flag_cursor <<= 1);
+final long VIEW_GAME = (flag_cursor <<= 1) | SHOW_GRID | SHOW_SCORE;
+/// Slots libres
+final long FREE_SLOT_19 = (flag_cursor <<= 1);
+final long FREE_SLOT_20 = (flag_cursor <<= 1);
+final long FREE_SLOT_21 = (flag_cursor <<= 1);
+final long FREE_SLOT_22 = (flag_cursor <<= 1);
+final long FREE_SLOT_23 = (flag_cursor <<= 1);
+final long FREE_SLOT_24 = (flag_cursor <<= 1);
+final long FREE_SLOT_25 = (flag_cursor <<= 1);
+final long FREE_SLOT_26 = (flag_cursor <<= 1);
+final long FREE_SLOT_27 = (flag_cursor <<= 1);
+final long FREE_SLOT_28 = (flag_cursor <<= 1);
+final long FREE_SLOT_29 = (flag_cursor <<= 1);
+final long FREE_SLOT_30 = (flag_cursor <<= 1);
+final long FREE_SLOT_31 = (flag_cursor <<= 1);
+final long FREE_SLOT_32 = (flag_cursor <<= 1);
+final long FREE_SLOT_33 = (flag_cursor <<= 1);
+final long FREE_SLOT_34 = (flag_cursor <<= 1);
+final long FREE_SLOT_35 = (flag_cursor <<= 1);
+final long FREE_SLOT_36 = (flag_cursor <<= 1);
+final long FREE_SLOT_37 = (flag_cursor <<= 1);
+final long FREE_SLOT_38 = (flag_cursor <<= 1);
+final long FREE_SLOT_39 = (flag_cursor <<= 1);
+final long FREE_SLOT_40 = (flag_cursor <<= 1);
+final long FREE_SLOT_41 = (flag_cursor <<= 1);
+final long FREE_SLOT_42 = (flag_cursor <<= 1);
+final long FREE_SLOT_43 = (flag_cursor <<= 1);
+final long FREE_SLOT_44 = (flag_cursor <<= 1);
+final long FREE_SLOT_45 = (flag_cursor <<= 1);
+final long FREE_SLOT_46 = (flag_cursor <<= 1);
+final long FREE_SLOT_47 = (flag_cursor <<= 1);
+final long FREE_SLOT_48 = (flag_cursor <<= 1);
+final long FREE_SLOT_49 = (flag_cursor <<= 1);
+final long FREE_SLOT_50 = (flag_cursor <<= 1);
+final long FREE_SLOT_51 = (flag_cursor <<= 1);
+final long FREE_SLOT_52 = (flag_cursor <<= 1);
+final long FREE_SLOT_53 = (flag_cursor <<= 1);
+final long FREE_SLOT_54 = (flag_cursor <<= 1);
+final long FREE_SLOT_55 = (flag_cursor <<= 1);
+final long FREE_SLOT_56 = (flag_cursor <<= 1);
+final long FREE_SLOT_57 = (flag_cursor <<= 1);
+final long FREE_SLOT_58 = (flag_cursor <<= 1);
+final long FREE_SLOT_59 = (flag_cursor <<= 1);
+final long FREE_SLOT_60 = (flag_cursor <<= 1);
+final long FREE_SLOT_61 = (flag_cursor <<= 1);
+final long FREE_SLOT_62 = (flag_cursor <<= 1);
+final long FREE_SLOT_63 = (flag_cursor <<= 1);
+/// If this fails, there is too many flags
+{
+  assert flag_cursor != 0;
+}
+
+/// //////////////////////////////////////////////////////////////////////////////////////////////////
+/// Pour faire une vue, il nous faut un certain nombre de parametres, et cette fois ci, nous testerons
+///  toutes les "composantes" pour savoir si le "flag" est activé
+boolean getState(long flag) {
+  return (flag & current_state) == flag;
+}
+
+void setState(long flag, boolean newState) {
+  if (newState) {
+    current_state |= flag;
+  } else {
+    current_state &= ~flag;
+  }
+}
+
+/// Change the state and return the new state,
+///  nous ne nous embeterons pas à savoir quoi
+///  activer, nous allons juste activer si un
+///  des bit est à 0, sinon, nous allons désactiver
+boolean changeState(long flag) {
+  if ((flag & FLAG_FULLSCREEN) != 0) {
+    // surface.getNative();
+  }
+  if (getState(flag)) {
+    setState(flag, false);
+    return false;
+  } else {
+    setState(flag, true);
+    return true;
+  }
 }
 
 
@@ -764,6 +806,36 @@ boolean loadConfig() {
 
 ArrayList<ArrayList<Integer>> lignesPossibles;
 
+
+void function() {
+  int taille = (int) sqrt(courante.ruban.length);
+
+  lignesPossibles = new ArrayList<ArrayList<Integer>>();
+  for (int i = 0; i < pow(2, taille); ++i) {
+  }
+  /*for (int i = 0; i < taille; ++i) {
+   insert(creerLigne(taille), taille * i);
+   }
+   for (int i = 0; i < courante.modifiables.length; ++i) {
+   courante.modifiables[i] = true;
+   }*/
+}
+
+
+int indeeeeex = 0;
+ArrayList<ArrayList<ArrayList<Integer>>> matricePossibles;
+
+void update(int index) {
+  for (int prefix = 0; prefix < 2; prefix++) {
+    for (ArrayList<Integer> l : lignesPossibles) {
+      if (l.get(index) == prefix) {
+        for (ArrayList<Integer> t : lignesPossibles) {
+        }
+      }
+    }
+  }
+}
+
 ArrayList<Object[]> circleRemembered = new ArrayList();
 
 void putCircleAndRemember(Object...args) {
@@ -784,19 +856,20 @@ void forgetAllCircles() {
 void putCircle(String type, PVector pos, PVector dim, color couleur, String texte) {
   try {
     if (type.equals("circle")) {
+      int size = (int) sqrt(courante.ruban.length);
       fill(couleur);
       ellipse(
         ///        centré   centré      
-        map(pos.x, 0 - 0.5, courante.taille - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]), 
-        map(pos.y, 0 - 0.5, courante.taille - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height), 
-        dim.x * dimensions_grille_w * dimEcran()[0] / courante.taille, 
-        dim.y * dimensions_grille_h * height / courante.taille 
+        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]), 
+        map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height), 
+        dim.x * dimensions_grille_w * dimEcran()[0] / size, 
+        dim.y * dimensions_grille_h * height / size 
         );
       filter(INVERT);
       text(
         texte, 
-        map(pos.x, 0 - 0.5, courante.taille - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]), 
-        map(pos.y, 0 - 0.5, courante.taille - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height)
+        map(pos.x, 0 - 0.5, size - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]), 
+        map(pos.y, 0 - 0.5, size - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height)
         );
       filter(INVERT);
       /// Lors du rediementionnement,
@@ -805,80 +878,6 @@ void putCircle(String type, PVector pos, PVector dim, color couleur, String text
   catch(ArrayIndexOutOfBoundsException e) {
   }
 }
-
-/// Liste chainée de bulles
-class Bubble {
-  float x;
-  float y;
-  float timeout;
-  float timestamp;
-  String[] message;
-  Bubble next;
-}
-
-void init_bubbles() {
-  bubbles = new ArrayList<Bubble>();
-}
-
-Bubble new_bubble(float x, float y, String...lignes) {
-  Bubble bulle = new Bubble();
-  bulle.x = x;
-  bulle.y = y;
-  bulle.message = lignes;
-  bulle.timestamp = millis();
-  bulle.timeout = millis() + 5000;
-  return bulle;
-}
-
-ArrayList<Bubble> bubbles;
-
-void put_bubble(float x, float y, String...lignes) {
-  bubbles.add(new_bubble(x, y, lignes));
-}
-
-void put_bubble(int index, String message) {
-  float x = map(index % courante.taille, 0 - 0.5, courante.taille - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]);
-  float y = map(index % courante.taille, 0 - 0.5, courante.taille - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height);
-  put_bubble(x, y, message);
-}
-int TEXT_SIZE = 16;
-
-
-void drawBubbles() {
-  textSize(16);
-  noStroke();
-  
-  
-  
-  for(Bubble bulle:bubbles) {
-    
-    
-    
-    int alpha = 255;
-    if(map(millis(), bulle.timestamp, bulle.timeout, 0, 100) > 50) {
-      alpha = 255 - (int) map(millis(), bulle.timestamp, bulle.timeout, 0, 255);
-    }
-    
-    fill(#ffffff, alpha);
-    float w = 0, h = bulle.message.length * 1.5;
-    for (String text : bulle.message) {
-      if(text.length() > w) {
-        w = text.length();
-      }
-    }
-    rect( bulle.x, bulle.y,
-          w * 16, h * 16);
-    for (String text : bulle.message) {
-      fill(#000000, alpha);
-      text(text, bulle.x + ((16 / 2) * text.length()), bulle.y + (16 / 2));
-    }
-    bulle = bulle.next;
-  }
-  
-  stroke(0);
-  textSize(TEXT_SIZE);
-}
-
 
 
 /// Coût: lenght * 2 tests
@@ -932,8 +931,63 @@ boolean dumbSolverOneStep() {
   }
   return touched;
 }
-// int positionX = 0, positionY = 0;
+int positionX = 0, positionY = 0;
 
+
+void debug() {
+  redrawCirleFromMemory();
+
+  /// Get states
+  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
+  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
+  if (window != null) {
+    /// Récupère la position de la fenêtre
+    float newX = window.getX();
+    float newY = window.getY();
+    if(true) {} else
+    if (getState(FLAG_GRID_FOLLOWS_MOUSE)) {
+      dimensions_grille_x = ((mouseAbsolutePosition.getLocation().x + offset.x - newX) / dimEcran()[0]) - (dimensions_grille_w / 2);
+      dimensions_grille_y = ((mouseAbsolutePosition.getLocation().y + offset.y - newY) / height) - (dimensions_grille_h / 2);
+    }
+    if(true) {} else
+    if (getState(FLAG_WINDOW_CENTERED_ON_GRID)) {
+      /// We take the relative position, then we substract 1 / 2 to have a location relative to the center
+      ///  NOTE: ((a + b) / 2) + (c / 2) = (a + b + c) / 2
+      float relativeOffsetX = ((dimensions_grille_x + dimensions_grille_x + dimensions_grille_w - 1) / 2);
+      float relativeOffsetY = ((dimensions_grille_y + dimensions_grille_y + dimensions_grille_h - 1) / 2);
+
+      newX += relativeOffsetX * dimEcran()[0];
+      newY += relativeOffsetY * height;
+
+      dimensions_grille_x -= relativeOffsetX;
+      dimensions_grille_y -= relativeOffsetY;
+    }
+    if(true) {} else
+    if (getState(FLAG_WINDOW_FULLY_INSIDE_SCREEN)) {
+      newX = max(0, min(newX, displayWidth - dimEcran()[0]));
+      newY = max(0, min(newY, displayHeight - height));
+    }
+    if(true) {} else
+    if (getState(FLAG_SHAKE_WINDOW)) {
+      float a = 0.5;
+      float w = float(dimEcran()[0]) - (random(-100, 100) > 0 ? a : -a);
+      float h = float(height)- (random(-100, 100) > 0 ? a : -a);
+      w = (w + w + w + h) / 4;
+      h = (w + h + h + h) / 4;
+      surface.setSize(int(w), int(h));
+      newX += random(-a, a);
+      newY += random(-a, a);
+    }
+    if(true) {} else
+    if (getState(FLAG_WINDOW_FOLLOWS_MOUSE)) {
+      /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
+      int a = 50;
+      newX = ((a * positionX) + mouseAbsolutePosition.getLocation().x - dimEcran()[0] / 2) / (a + 1);
+      newY = ((a * positionY) + mouseAbsolutePosition.getLocation().y - height / 2) / (a + 1);
+    }
+    surface.placeWindow(new int[] {int(newX), int(newY)}, new int[] {0, 0});
+  }
+}
 
 /// BUG in '5' when w < h
 
@@ -1017,209 +1071,3 @@ boolean grilleCorrecte(ArrayList<Integer>grille) {
   }
   return true;
 }
-
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-void debug() {
-  redrawCirleFromMemory();
-
-  /// Get states
-  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
-  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
-  if (window != null) {
-    /// Récupère la position de la fenêtre
-    float newX = window.getX();
-    float newY = window.getY();
-    if (true) {
-    } else
-      if (getState(FLAG_GRID_FOLLOWS_MOUSE)) {
-        dimensions_grille_x = ((mouseAbsolutePosition.getLocation().x + offset.x - newX) / dimEcran()[0]) - (dimensions_grille_w / 2);
-        dimensions_grille_y = ((mouseAbsolutePosition.getLocation().y + offset.y - newY) / height) - (dimensions_grille_h / 2);
-      }
-    if (true) {
-    } else
-      if (getState(FLAG_WINDOW_CENTERED_ON_GRID)) {
-        /// We take the relative position, then we substract 1 / 2 to have a location relative to the center
-        ///  NOTE: ((a + b) / 2) + (c / 2) = (a + b + c) / 2
-        float relativeOffsetX = ((dimensions_grille_x + dimensions_grille_x + dimensions_grille_w - 1) / 2);
-        float relativeOffsetY = ((dimensions_grille_y + dimensions_grille_y + dimensions_grille_h - 1) / 2);
-
-        newX += relativeOffsetX * dimEcran()[0];
-        newY += relativeOffsetY * height;
-
-        dimensions_grille_x -= relativeOffsetX;
-        dimensions_grille_y -= relativeOffsetY;
-      }
-    if (true) {
-    } else
-      if (getState(FLAG_WINDOW_FULLY_INSIDE_SCREEN)) {
-        newX = max(0, min(newX, displayWidth - dimEcran()[0]));
-        newY = max(0, min(newY, displayHeight - height));
-      }
-    if (true) {
-    } else
-      if (getState(FLAG_SHAKE_WINDOW)) {
-        float a = 0.5;
-        float w = float(dimEcran()[0]) - (random(-100, 100) > 0 ? a : -a);
-        float h = float(height)- (random(-100, 100) > 0 ? a : -a);
-        w = (w + w + w + h) / 4;
-        h = (w + h + h + h) / 4;
-        surface.setSize(int(w), int(h));
-        newX += random(-a, a);
-        newY += random(-a, a);
-      }
-    /*if (true) {
-     } else
-     if (getState(FLAG_WINDOW_FOLLOWS_MOUSE)) {
-     /// Valeur absolue de la souris, même si elle se trouve à l'exterieur
-     int a = 50;
-     newX = ((a * positionX) + mouseAbsolutePosition.getLocation().x - dimEcran()[0] / 2) / (a + 1);
-     newY = ((a * positionY) + mouseAbsolutePosition.getLocation().y - height / 2) / (a + 1);
-     }*/
-    surface.placeWindow(new int[] {int(newX), int(newY)}, new int[] {0, 0});
-  }
-}
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-
-/**
- Paramètres généraux, un seul long, simple à sauvegarder, et ne nécéssitant que
- la déclaration d'une variable et de constantes, cela pourra aussi être utile
- d'utiliser cela pour pouvoir intercepter les modifications, par exemple afficher
- tout les changements d'une variable en cas de compotement inhabituel.
- Pour assigner aux flags une valeur, et pour m'assurer qu'il n'y aura pas deux fois
- la même valeur, je peux les initialiser de deux manières:
- 1/ A la main:
- a = 0b0000000000000000000000000000000000000000000000000000000000000001L
- b = 0b0000000000000000000000000000000000000000000000000000000000000010L
- c = 0b0000000000000000000000000000000000000000000000000000000000000100L
- 2/ Automatiquement
- cur = 1L;
- a = cur;
- b = (cur << 1);
- c = (cur << 1);
- */
-long current_state = 0b0000000000000000000000000000000000000000000000000000000000000000L;
-long flag_cursor   = 1L; // Représente, si différent de 1, le nombre de flags au total
-///  S'il est vrai, la fenetre sera située de manière à ce que la grille ne dépasse pas,
-///    pour l'instant, nous nous contenterons de placer la fenetre pour que la grille
-///    soit au centre
-///  XXX: Mettre à jour ce commentaire en cas de changement de méthode
-final long FLAG_SHALL_NOT_GO_OUT = flag_cursor;
-final long FLAG_GRID_FOLLOWS_MOUSE = (flag_cursor <<= 1);
-final long FLAG_WINDOW_CENTERED_ON_GRID = (flag_cursor <<= 1);
-final long FLAG_WINDOW_FULLY_INSIDE_SCREEN = (flag_cursor <<= 1);
-final long FLAG_SHAKE_WINDOW = (flag_cursor <<= 1);
-final long FLAG_WINDOW_FOLLOWS_MOUSE = (flag_cursor <<= 1);
-final long FLAG_FULLSCREEN = (flag_cursor <<= 1);
-final long FLAG_RESIZABLE = (flag_cursor <<= 1);
-
-/// Vues
-final long EDIT_MODE = (flag_cursor <<= 1);
-final long CURRENTLY_PLAYING = (flag_cursor <<= 1);
-final long ALWAYS_SQUARE = (flag_cursor <<= 1);
-final long ALWAYS_CENTERED = (flag_cursor <<= 1);
-final long LATERAL_RIGHT_ANIMATION = (flag_cursor <<= 1);
-final long ALWAYS_FULL = (flag_cursor <<= 1);
-
-/// Widgets
-final long SHOW_GRID = (flag_cursor <<= 1);
-final long SHOW_SCORE = (flag_cursor <<= 1);
-final long SHOW_LATERAL_RIGHT = (flag_cursor <<= 1);
-final long LATERAL_RIGHT_SHOWN = (flag_cursor <<= 1);
-/// Menus (ensembles de widgets)
-final long VIEW_HOME = (flag_cursor <<= 1);
-final long VIEW_GAME = (flag_cursor <<= 1) | SHOW_GRID | SHOW_SCORE;
-/// Slots libres
-final long FREE_SLOT_20 = (flag_cursor <<= 1);
-final long FREE_SLOT_21 = (flag_cursor <<= 1);
-final long FREE_SLOT_22 = (flag_cursor <<= 1);
-final long FREE_SLOT_23 = (flag_cursor <<= 1);
-final long FREE_SLOT_24 = (flag_cursor <<= 1);
-final long FREE_SLOT_25 = (flag_cursor <<= 1);
-final long FREE_SLOT_26 = (flag_cursor <<= 1);
-final long FREE_SLOT_27 = (flag_cursor <<= 1);
-final long FREE_SLOT_28 = (flag_cursor <<= 1);
-final long FREE_SLOT_29 = (flag_cursor <<= 1);
-final long FREE_SLOT_30 = (flag_cursor <<= 1);
-final long FREE_SLOT_31 = (flag_cursor <<= 1);
-final long FREE_SLOT_32 = (flag_cursor <<= 1);
-final long FREE_SLOT_33 = (flag_cursor <<= 1);
-final long FREE_SLOT_34 = (flag_cursor <<= 1);
-final long FREE_SLOT_35 = (flag_cursor <<= 1);
-final long FREE_SLOT_36 = (flag_cursor <<= 1);
-final long FREE_SLOT_37 = (flag_cursor <<= 1);
-final long FREE_SLOT_38 = (flag_cursor <<= 1);
-final long FREE_SLOT_39 = (flag_cursor <<= 1);
-final long FREE_SLOT_40 = (flag_cursor <<= 1);
-final long FREE_SLOT_41 = (flag_cursor <<= 1);
-final long FREE_SLOT_42 = (flag_cursor <<= 1);
-final long FREE_SLOT_43 = (flag_cursor <<= 1);
-final long FREE_SLOT_44 = (flag_cursor <<= 1);
-final long FREE_SLOT_45 = (flag_cursor <<= 1);
-final long FREE_SLOT_46 = (flag_cursor <<= 1);
-final long FREE_SLOT_47 = (flag_cursor <<= 1);
-final long FREE_SLOT_48 = (flag_cursor <<= 1);
-final long FREE_SLOT_49 = (flag_cursor <<= 1);
-final long FREE_SLOT_50 = (flag_cursor <<= 1);
-final long FREE_SLOT_51 = (flag_cursor <<= 1);
-final long FREE_SLOT_52 = (flag_cursor <<= 1);
-final long FREE_SLOT_53 = (flag_cursor <<= 1);
-final long FREE_SLOT_54 = (flag_cursor <<= 1);
-final long FREE_SLOT_55 = (flag_cursor <<= 1);
-final long FREE_SLOT_56 = (flag_cursor <<= 1);
-final long FREE_SLOT_57 = (flag_cursor <<= 1);
-final long FREE_SLOT_58 = (flag_cursor <<= 1);
-final long FREE_SLOT_59 = (flag_cursor <<= 1);
-final long FREE_SLOT_60 = (flag_cursor <<= 1);
-final long FREE_SLOT_61 = (flag_cursor <<= 1);
-final long FREE_SLOT_62 = (flag_cursor <<= 1);
-final long FREE_SLOT_63 = (flag_cursor <<= 1);
-/// If this fails, there is too many flags
-{
-  assert flag_cursor != 0;
-}
-
-/// //////////////////////////////////////////////////////////////////////////////////////////////////
-/// Pour faire une vue, il nous faut un certain nombre de parametres, et cette fois ci, nous testerons
-///  toutes les "composantes" pour savoir si le "flag" est activé
-boolean getState(long flag) {
-  return (flag & current_state) == flag;
-}
-
-void setState(long flag, boolean newState) {
-  if((current_state & FLAG_RESIZABLE) == FLAG_RESIZABLE) {
-    surface.setResizable(newState);
-  }
-  if (newState) {
-    current_state |= flag;
-  } else {
-    current_state &= ~flag;
-  }
-}
-
-/// Change the state and return the new state,
-///  nous ne nous embeterons pas à savoir quoi
-///  activer, nous allons juste activer si un
-///  des bit est à 0, sinon, nous allons désactiver
-boolean changeState(long flag) {
-  if ((flag & FLAG_FULLSCREEN) != 0) {
-    // surface.getNative();
-  }
-  if (getState(flag)) {
-    setState(flag, false);
-    return false;
-  } else {
-    setState(flag, true);
-    return true;
-  }
-}
-
-long[] broken = {FLAG_WINDOW_FOLLOWS_MOUSE};
