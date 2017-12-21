@@ -104,21 +104,6 @@ void reSquare() {
   dimensions_grille_x -= dimensions_grille_w / 2;
   dimensions_grille_y -= dimensions_grille_h / 2;
 }
-float[][] getLocations() {
-  /// [x0, y0, x1, y1, w, h] -> en pixels
-  float[][] locations = new float[courante.taille][6];
-  for (int i = 0; i < courante.taille; ++i) {
-    locations[i][0] = dimensions_grille_abs_x_0 + ((i % courante.taille) * dimensions_grille_abs_unit_w);
-    locations[i][1] = dimensions_grille_abs_y_0 + ((i / courante.taille) * dimensions_grille_abs_unit_h);
-
-    locations[i][4] = dimensions_grille_abs_unit_w;
-    locations[i][5] = dimensions_grille_abs_unit_h;
-
-    locations[i][2] = locations[i][0] + locations[i][4];
-    locations[i][3] = locations[i][1] + locations[i][5];
-  }
-  return locations;
-}
 int[] dimEcran() {
   return new int[]{width - int(lateralRight.taille), height};
 }
