@@ -63,11 +63,13 @@ final long ACTION_CLEAR_GRILL = (flag_cursor <<= 1);
 final long ACTION_CLEAR_DRAFT = (flag_cursor <<= 1);
 final long ACTION_CLEAR_BOARD = ACTION_CLEAR_GRILL | ACTION_CLEAR_DRAFT;
 
+final long ACTION_RESET_TIMER = (flag_cursor <<= 1);
+
+final long ACTION_RESTART = ACTION_RESET_TIMER | ACTION_RESET_TIMER;
+
+final long ACTION_AI_ONE_MOVE = (flag_cursor <<= 1);
 
 /// Slots libres
-final long FREE_SLOT_17 = (flag_cursor <<= 1);
-final long FREE_SLOT_18 = (flag_cursor <<= 1);
-final long FREE_SLOT_19 = (flag_cursor <<= 1);
 final long FREE_SLOT_20 = (flag_cursor <<= 1);
 final long FREE_SLOT_21 = (flag_cursor <<= 1);
 final long FREE_SLOT_22 = (flag_cursor <<= 1);

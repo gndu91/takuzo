@@ -1,5 +1,5 @@
 boolean dumbSolverOneStep() {
-  forgetAllCircles();
+  execute(ACTION_CLEAR_DRAFT);
 
   ArrayList<Integer> test0 = new ArrayList<Integer>();
   ArrayList<Integer> test1 = new ArrayList<Integer>();
@@ -22,14 +22,14 @@ boolean dumbSolverOneStep() {
       marche1 = grilleCorrecte(test1);
 
       if (!marche0 || !marche1) {
-        putCircleAndRemember("circle", new PVector(i % taille, i / taille), new PVector(0.5, 0.5), #0000ff, "One");
+        rememberCircle("circle", i, new PVector(0.5, 0.5), #0000ff, "One");
       }
       if (!marche0 && !marche1) {
-        putCircleAndRemember("circle", new PVector(i % taille, i / taille), new PVector(0.5, 0.5), #ff0000, "None");
+        rememberCircle("circle", i, new PVector(0.5, 0.5), #ff0000, "None");
       }
       if (marche0 && marche1) {
         println("i: " + i, grilleCorrecte(test0), grilleCorrecte(test1));
-        putCircleAndRemember("circle", new PVector(i % taille, i / taille), new PVector(0.5, 0.5), #00ff00, "All");
+        rememberCircle("circle", i, new PVector(0.5, 0.5), #00ff00, "All");
       }
 
       if (marche0 != marche1) {
@@ -76,7 +76,6 @@ boolean grilleCorrecte(ArrayList<Integer>grille) {
       if (i==0)_0++;
       else if (i==1)_1++;
       if (_0 > 2 || _1 > 2) {
-        print("Contiguité");
         return false;
       }
     }
@@ -107,7 +106,6 @@ boolean grilleCorrecte(ArrayList<Integer>grille) {
       }
       if (_0 > 2 || _1 > 2) {
         println(_0, _1);
-        print("Contiguité");
         return false;
       }
     }

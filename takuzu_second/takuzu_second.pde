@@ -22,8 +22,6 @@ class Grille {
   int index;
   Grille suivante;
 };
-
-Menu lateralRight = menuPrincipal();
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// TODO: ChangeListe
@@ -61,17 +59,9 @@ void settings() {
  */
 void setup() {
   init();
-  /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
-  setState(FLAG_RESIZABLE, true);
   surface.setTitle("Takuzo");
   //////////////////////////////////
-  setState(VIEW_GAME, true);
-  setState(CURRENTLY_PLAYING, true);
-  setState(ALWAYS_CENTERED, true);
-
-  setState(SHOW_LATERAL_RIGHT, true);
-
-  put_bubble(0, "Welcome");
+  /// XXX
 }
 
 /**
@@ -92,183 +82,8 @@ void draw() {
     afficherGrille();
   }
   drawBubbles();
-  debug();
+  redrawCirleFromMemory();
 }
-
-/// L'index du menu associé à un PVectore 
-int getIndex(PVector mouse) {
-  PVector[][] pos = getPositions();
-  for (int index = 0; index < pos.length; index++) {
-    PVector[]i = pos[index];
-    if (mouse.x > i[0].x && mouse.y > i[0].y) {
-      if (mouse.y < i[1].y && mouse.y < i[1].y) {
-        return index;
-      }
-    }
-  }
-  return -1;
-}
-/// Points a, b, dimensions
-PVector[][] getPositions() {
-  PVector[][] pos = new PVector[lateralRight.boutons.length][3];
-  float margins = lateralRight.taille / 10;
-  for (int index = 0; index < lateralRight.boutons.length; ++index) {
-    pos[index] = new PVector[] {
-      new PVector(dimEcran()[0] + margins, (lateralRight.granularite * index + 16) - lateralRight.offset), 
-      new PVector(), 
-      new PVector(lateralRight.taille - (2 * margins), 64)
-    };
-    pos[index][1] = PVector.add(pos[index][0], pos[index][2]);
-  }
-  return pos;
-}
-
-boolean mouseInLateral() {
-  return (width - mouseX) < lateralRight.taille;
-}
-
-void afficherLateralDroit() {
-  PVector[][] positions = getPositions();
-  for (int index = 0; index < lateralRight.boutons.length; ++index) {
-    Bouton i = lateralRight.boutons[index];
-    /// TODO: Onover
-    fill(i.over ? #00ff00: 128);
-    rect(positions[index][0].x, positions[index][0].y, positions[index][2].x, positions[index][2].y);
-    textAlign(CENTER, CENTER);
-    fill(0);
-    text(i.text, positions[index][0].x + (positions[index][2].x / 2), positions[index][0].y + (positions[index][2].y / 2));
-  }
-}
-
-/// /////////////////////////////////////////////////////////////////////////////////////////
-/// Fonctions et variables relatives aux dimensions
-///
-float dimensions_grille_w, dimensions_grille_h, dimensions_grille_x, dimensions_grille_y;
-
-/// Les variables du dessous devront être mises à jour en fonction de celles du dessus
-float dimensions_grille_abs_x_0, dimensions_grille_abs_y_0;
-float dimensions_grille_abs_x_1, dimensions_grille_abs_y_1;
-float dimensions_grille_abs_w, dimensions_grille_abs_h;
-float dimensions_grille_abs_unit_w, dimensions_grille_abs_unit_h;/// Taille d'une case
-void updateDims() {
-  if (getState(ALWAYS_SQUARE)) 
-    reSquare();
-  if (getState(ALWAYS_CENTERED))
-    reCenterGrill();
-  if (getState(ALWAYS_FULL))
-    fullSize();
-  /// Affiche progressivement le menu latéral, si l'animation est 
-  int animation_speed = 1;
-  if (getState(LATERAL_RIGHT_ANIMATION)) {
-  }
-  if (getState(SHOW_LATERAL_RIGHT)) {
-    setState(LATERAL_RIGHT_SHOWN, true);
-    if (lateralRight.taille < lateralRight.tailleFinale) {
-      surface.setSize(width + animation_speed, height);
-      lateralRight.taille += animation_speed;
-    }
-  } else {
-    if (lateralRight.taille > -1) {
-      surface.setSize(width - animation_speed, height);
-      lateralRight.taille -= animation_speed;
-    } else {
-      setState(LATERAL_RIGHT_SHOWN, false);
-    }
-  }
-  dimensions_grille_abs_x_0 = (dimEcran()[0] * dimensions_grille_x);
-  dimensions_grille_abs_y_0 = (height * dimensions_grille_y);
-  dimensions_grille_abs_x_1 = dimensions_grille_abs_x_0 + dimEcran()[0] * dimensions_grille_w;
-  dimensions_grille_abs_y_1 = dimensions_grille_abs_y_0 + height * dimensions_grille_h;
-  dimensions_grille_abs_w = dimEcran()[0] * dimensions_grille_w;
-  dimensions_grille_abs_h = height * dimensions_grille_h;
-  dimensions_grille_abs_unit_w = dimensions_grille_abs_w / courante.taille;
-  dimensions_grille_abs_unit_h = dimensions_grille_abs_h / courante.taille;
-}
-void zoom(float agrandissement) {
-  dimensions_grille_x += dimensions_grille_w / 2;
-  dimensions_grille_y += dimensions_grille_h / 2;
-  dimensions_grille_w *= (1 - agrandissement);
-  dimensions_grille_h *= (1 - agrandissement);
-  dimensions_grille_x -= dimensions_grille_w / 2;
-  dimensions_grille_y -= dimensions_grille_h / 2;
-  updateDims();
-}
-void shiftRel(float x, float y) {
-  dimensions_grille_x += x;
-  dimensions_grille_y += y;
-  updateDims();
-}
-void shiftAbs(float x, float y) {
-  dimensions_grille_x += x * dimEcran()[0];
-  dimensions_grille_y += y * height;
-  updateDims();
-}
-void relocate(int x, int y) {  
-  dimensions_grille_x += x / dimEcran()[0];
-  dimensions_grille_y += y / height;
-  updateDims();
-}
-void reCenterGrill() {
-  dimensions_grille_x = (1 - dimensions_grille_w) / 2;
-  dimensions_grille_y = (1 - dimensions_grille_h) / 2;
-}
-void fullSize() {
-  // If width > height
-  /*if (canvas[5] > canvas[5]) {
-   }*/
-}
-void initOffSet() {
-  offset = new PVector( -4.0, -23.0, 0.0 );
-}
-void updateOffset() {
-  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
-  java.awt.Point mouseAbsolutePosition = java.awt.MouseInfo.getPointerInfo().getLocation();
-  if (window != null) {
-    /// On recupere les deux valeurs relatives
-    /// Leaky sum
-    float ratio = 0.001;
-    offset.x = (float) ((offset.x * (1 - ratio)) + (ratio * (float(mouseX) - (mouseAbsolutePosition.getX() - window.getX())));
-    offset.y = (float) ((offset.y * (1 - ratio)) + (ratio * (float(mouseY) - (mouseAbsolutePosition.getY() - window.getY())));
-  }
-}
-void reSquare() {
-  float ratio = float(dimEcran()[0]) / height;
-
-  float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
-
-  dimensions_grille_x += dimensions_grille_w / 2;
-  dimensions_grille_y += dimensions_grille_h / 2;
-
-  dimensions_grille_h = mean * ratio;
-  dimensions_grille_w = mean;//  / ratio;
-
-  dimensions_grille_x -= dimensions_grille_w / 2;
-  dimensions_grille_y -= dimensions_grille_h / 2;
-}
-float[][] getLocations() {
-  /// [x0, y0, x1, y1, w, h] -> en pixels
-  float[][] locations = new float[courante.taille][6];
-  for (int i = 0; i < courante.taille; ++i) {
-    locations[i][0] = dimensions_grille_abs_x_0 + ((i % courante.taille) * dimensions_grille_abs_unit_w);
-    locations[i][1] = dimensions_grille_abs_y_0 + ((i / courante.taille) * dimensions_grille_abs_unit_h);
-
-    locations[i][4] = dimensions_grille_abs_unit_w;
-    locations[i][5] = dimensions_grille_abs_unit_h;
-
-    locations[i][2] = locations[i][0] + locations[i][4];
-    locations[i][3] = locations[i][1] + locations[i][5];
-  }
-  return locations;
-}
-int[] dimEcran() {
-  return new int[]{width - int(lateralRight.taille), height};
-}
-int[] origin() {
-  return new int[]{10, 10, 10, 10};
-}
-/// /////////////////////////////////////////////////////////////////////////////////////////
-
-
 color[] grille_couleurs;
 String grille_affichage_type;
 boolean grille_affichage_afficherChiffres;
@@ -276,31 +91,26 @@ boolean grille_affichage_afficherChiffres;
  * Servira à initialiser les variables et paramètres
  */
 void init() {
-
-  if (!loadConfig()) {
-    /// FLAG:INITIALISATION
-    dimensions_grille_w = 0.75;
-    dimensions_grille_h = 0.75;
-    dimensions_grille_x = 0.125;
-    dimensions_grille_y = 0.125;
-
-    grille_affichage_type = "couleurs";
-
-    grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
-    initOffSet();
-    
-    init_bubbles();
-    setState(ALWAYS_SQUARE, true);
-
-    /// TODO: Initialiser les variables ici, puis
-    ///  saveConfig()
-  }
-
+  setState(FLAG_RESIZABLE, true);
+  setState(VIEW_GAME, true);
+  setState(CURRENTLY_PLAYING, true);
+  setState(ALWAYS_CENTERED, true);
+  setState(SHOW_LATERAL_RIGHT, true);
+  /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
+  setState(FLAG_RESIZABLE, true);
+  dimensions_grille_w = 0.75;
+  dimensions_grille_h = 0.75;
+  dimensions_grille_x = 0.125;
+  dimensions_grille_y = 0.125;
+  grille_affichage_type = "couleurs";
+  grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
+  setState(ALWAYS_SQUARE, true);
+  initOffSet();
+  init_bubbles();
   grilles = chargerGrilles();
-
   courante = grilles.get(0);
+  put_bubble(0, "Welcome");
 }
-
 /**
  *  Affiche la matrice
  *
@@ -341,9 +151,8 @@ void mousePressed() {
   if (getState(LATERAL_RIGHT_SHOWN)) {
     int index = getIndex(new PVector(mouseX, mouseY));
     if (index > -1 && index < lateralRight.boutons.length) {
-      if((lateralRight.boutons[index].actions & ACTION_OPEN_NEW_GRILL) == ACTION_OPEN_NEW_GRILL) {
-              
-      }
+      println("Triggering " + lateralRight.boutons[index].text + " with as flag " + lateralRight.boutons[index].actions + "...");
+      execute(lateralRight.boutons[index].actions);
     }
   }
   if (getState(VIEW_GAME) && getState(CURRENTLY_PLAYING)) {
@@ -369,19 +178,13 @@ void mouseWheel(MouseEvent event) {
   }
 }
 
-void cleanBoard() {
-  for (int i = 0; i < courante.modifiables.length; ++i) 
-    if (courante.modifiables[i]) 
-      courante.ruban[i] = 2;
-}
-
 void keyPressed() {
   if (key == '*') {
     changeState(SHOW_LATERAL_RIGHT);
   } else
     if (getState(VIEW_GAME) && getState(EDIT_MODE)) {
       if (key == BACKSPACE) {
-        cleanBoard();
+        execute(ACTION_CLEAR_GRILL);
       } else if (key == ENTER) {
         courante = courante.suivante;
       } else if (key == TAB) {
@@ -428,21 +231,23 @@ void keyPressed() {
 /// BUG in '5' when w < h
 
 
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-/// ////////////////////////////////////////////////////////////////////////////////////
-void debug() {
-  redrawCirleFromMemory();
+boolean activated(long var, long flag) {
+  return (var & flag) == flag;
+}
 
-  /// Get states
-  java.awt.Window window = javax.swing.FocusManager.getCurrentManager().getActiveWindow();
-  if (window != null) {
-    /// Récupère la position de la fenêtre
-    float newX = window.getX();
-    float newY = window.getY();
-    surface.placeWindow(new int[] {int(newX), int(newY)}, new int[] {0, 0});
+void execute(long actions) {
+  if (activated(actions, ACTION_OPEN_NEW_GRILL)) {
+    throw new RuntimeException("NonImplementedError");
+  }
+  if (activated(actions, ACTION_CLEAR_GRILL)) {
+    for (int i = 0; i < courante.modifiables.length; ++i) 
+      if (courante.modifiables[i]) 
+        courante.ruban[i] = 2;
+  }
+  if (activated(actions, ACTION_CLEAR_DRAFT)) {
+    circleRemembered = new ArrayList();
+  }
+  if (activated(actions, ACTION_AI_ONE_MOVE)) {
+    dumbSolverOneStep();
   }
 }
