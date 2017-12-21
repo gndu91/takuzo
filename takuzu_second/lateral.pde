@@ -36,7 +36,7 @@ void afficherLateralDroit() {
   for (int index = 0; index < lateralRight.boutons.length; ++index) {
     Bouton i = lateralRight.boutons[index];
     /// TODO: Onover
-    fill(i.over ? #00ff00: 128);
+    fill(lateralRight.boutons[index].couleur);
     rect(positions[index][0].x, positions[index][0].y, positions[index][2].x, positions[index][2].y);
     textAlign(CENTER, CENTER);
     fill(0);

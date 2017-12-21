@@ -77,12 +77,13 @@ void draw() {
   updateDims();
   if (getState(LATERAL_RIGHT_SHOWN)) {
     afficherLateralDroit();
+    updateLateral();
   }
   if (getState(SHOW_GRID)) {
     afficherGrille();
-  }
-  drawBubbles();
+  }  
   redrawCirleFromMemory();
+  drawBubbles();
 }
 color[] grille_couleurs;
 String grille_affichage_type;
@@ -91,6 +92,7 @@ boolean grille_affichage_afficherChiffres;
  * Servira à initialiser les variables et paramètres
  */
 void init() {
+  /// Init flags
   setState(FLAG_RESIZABLE, true);
   setState(VIEW_GAME, true);
   setState(CURRENTLY_PLAYING, true);
@@ -98,15 +100,20 @@ void init() {
   setState(SHOW_LATERAL_RIGHT, true);
   /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
   setState(FLAG_RESIZABLE, true);
+
+  /// Init dimens
   dimensions_grille_w = 0.75;
   dimensions_grille_h = 0.75;
   dimensions_grille_x = 0.125;
   dimensions_grille_y = 0.125;
+
+
   grille_affichage_type = "couleurs";
   grille_couleurs = new color[] {#990000, #ff0000, #009900, #00ff00, #ffffff};
+
   setState(ALWAYS_SQUARE, true);
   initOffSet();
-  init_bubbles();
+  execute(ACTION_CLEAR_BUBBLES);
   grilles = chargerGrilles();
   courante = grilles.get(0);
   put_bubble(0, "Welcome");
@@ -182,14 +189,8 @@ void keyPressed() {
   if (key == '*') {
     changeState(SHOW_LATERAL_RIGHT);
   } else
-    if (getState(VIEW_GAME) && getState(EDIT_MODE)) {
-      if (key == BACKSPACE) {
-        execute(ACTION_CLEAR_GRILL);
-      } else if (key == ENTER) {
-        courante = courante.suivante;
-      } else if (key == TAB) {
-        dumbSolverOneStep();
-      } else if (key >= '1' && key <= '9') {
+    //if (getState(VIEW_GAME) && getState(EDIT_MODE)) {
+      if (key >= '1' && key <= '9') {
         float _x = ((float) (mouseX)) / dimEcran()[0];
         float _y = ((float) (mouseY)) / height;
 
@@ -210,7 +211,7 @@ void keyPressed() {
         }
 
         if (key == '5') {
-          reSquare();
+          execute(ACTION_GRILL_RESQUARE);
         }
       } else if (key == '+' || key == '-') {
         zoom(key == '+' ? -0.1 : 0.1);
@@ -218,7 +219,7 @@ void keyPressed() {
         float step = 0.01;
         shiftRel(((keyCode == LEFT) ? -step : (keyCode == RIGHT) ? step : 0), ((keyCode == UP) ? -step : (keyCode == DOWN) ? step : 0));
       }
-    }
+  //  }
 }
 
 
@@ -237,7 +238,7 @@ boolean activated(long var, long flag) {
 
 void execute(long actions) {
   if (activated(actions, ACTION_OPEN_NEW_GRILL)) {
-    throw new RuntimeException("NonImplementedError");
+    //throw new RuntimeException("NonImplementedError");
   }
   if (activated(actions, ACTION_CLEAR_GRILL)) {
     for (int i = 0; i < courante.modifiables.length; ++i) 
@@ -249,5 +250,25 @@ void execute(long actions) {
   }
   if (activated(actions, ACTION_AI_ONE_MOVE)) {
     dumbSolverOneStep();
+  }
+  if (activated(actions, ACTION_GRILL_RESQUARE)) {
+    float ratio = float(dimEcran()[0]) / height;
+
+    float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
+
+    dimensions_grille_x += dimensions_grille_w / 2;
+    dimensions_grille_y += dimensions_grille_h / 2;
+
+    dimensions_grille_h = mean * ratio;
+    dimensions_grille_w = mean;//  / ratio;
+
+    dimensions_grille_x -= dimensions_grille_w / 2;
+    dimensions_grille_y -= dimensions_grille_h / 2;
+  }
+  if (activated(actions, ACTION_CLEAR_BUBBLES)) {
+    bubbles = new ArrayList<Bubble>();
+  }
+  if (activated(actions, ACTION_GRILL_SHOW_NEXT)) {
+    courante = courante.suivante;
   }
 }

@@ -11,7 +11,7 @@ float dimensions_grille_abs_w, dimensions_grille_abs_h;
 float dimensions_grille_abs_unit_w, dimensions_grille_abs_unit_h;/// Taille d'une case
 void updateDims() {
   if (getState(ALWAYS_SQUARE)) 
-    reSquare();
+    execute(ACTION_GRILL_RESQUARE);
   if (getState(ALWAYS_CENTERED))
     reCenterGrill();
   if (getState(ALWAYS_FULL))
@@ -90,20 +90,7 @@ void updateOffset() {
     offset.y = (float) ((offset.y * (1 - ratio)) + (ratio * (float(mouseY) - (mouseAbsolutePosition.getY() - window.getY()))));
   }
 }
-void reSquare() {
-  float ratio = float(dimEcran()[0]) / height;
 
-  float mean = ((dimensions_grille_h / ratio) + (dimensions_grille_w)) / 2;
-
-  dimensions_grille_x += dimensions_grille_w / 2;
-  dimensions_grille_y += dimensions_grille_h / 2;
-
-  dimensions_grille_h = mean * ratio;
-  dimensions_grille_w = mean;//  / ratio;
-
-  dimensions_grille_x -= dimensions_grille_w / 2;
-  dimensions_grille_y -= dimensions_grille_h / 2;
-}
 int[] dimEcran() {
   return new int[]{width - int(lateralRight.taille), height};
 }

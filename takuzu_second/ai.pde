@@ -1,19 +1,19 @@
 boolean dumbSolverOneStep() {
   execute(ACTION_CLEAR_DRAFT);
 
-  ArrayList<Integer> test0 = new ArrayList<Integer>();
-  ArrayList<Integer> test1 = new ArrayList<Integer>();
-  int taille = (int) sqrt(courante.ruban.length);
+
 
   boolean marche0, marche1;
   boolean touched = false;
   /// Copie intégrale
   for (int i = 0; i < courante.ruban.length; ++i) {
-    test0.add(courante.ruban[i]);
-    test1.add(courante.ruban[i]);
-  }
-  for (int i = 0; i < courante.ruban.length; ++i) {
-    if (courante.modifiables[i]) {
+    if (courante.modifiables[i] and void) {
+      ArrayList<Integer> test0 = new ArrayList<Integer>();
+      ArrayList<Integer> test1 = new ArrayList<Integer>();
+      for (int j = 0; j < courante.ruban.length; ++j) {
+        test0.add(courante.ruban[j]);
+        test1.add(courante.ruban[j]);
+      }
       /// On modifie
       test0.set(i, 0);
       test1.set(i, 1);
@@ -31,6 +31,7 @@ boolean dumbSolverOneStep() {
         println("i: " + i, grilleCorrecte(test0), grilleCorrecte(test1));
         rememberCircle("circle", i, new PVector(0.5, 0.5), #00ff00, "All");
       }
+      put_bubble(i, "" + courante.ruban[i]);
 
       if (marche0 != marche1) {
         touched = true;

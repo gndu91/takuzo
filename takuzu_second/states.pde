@@ -59,9 +59,11 @@ final long VIEW_GAME = (flag_cursor <<= 1) | SHOW_GRID | SHOW_SCORE;
 
 /// Actions prédéfinies
 final long ACTION_OPEN_NEW_GRILL = (flag_cursor <<= 1);
+
 final long ACTION_CLEAR_GRILL = (flag_cursor <<= 1);
 final long ACTION_CLEAR_DRAFT = (flag_cursor <<= 1);
-final long ACTION_CLEAR_BOARD = ACTION_CLEAR_GRILL | ACTION_CLEAR_DRAFT;
+final long ACTION_CLEAR_BUBBLES = (flag_cursor <<= 1);
+final long ACTION_CLEAR_BOARD = ACTION_CLEAR_GRILL | ACTION_CLEAR_DRAFT | ACTION_CLEAR_BUBBLES;
 
 final long ACTION_RESET_TIMER = (flag_cursor <<= 1);
 
@@ -69,11 +71,12 @@ final long ACTION_RESTART = ACTION_RESET_TIMER | ACTION_RESET_TIMER;
 
 final long ACTION_AI_ONE_MOVE = (flag_cursor <<= 1);
 
+final long ACTION_GRILL_RESQUARE = (flag_cursor <<= 1);
+
+final long ACTION_GRILL_SHOW_NEXT = (flag_cursor <<= 1);
+final long BUGGED_ACTION_GRILL_SHOW_PREVIOUS = (flag_cursor <<= 1);
+
 /// Slots libres
-final long FREE_SLOT_20 = (flag_cursor <<= 1);
-final long FREE_SLOT_21 = (flag_cursor <<= 1);
-final long FREE_SLOT_22 = (flag_cursor <<= 1);
-final long FREE_SLOT_23 = (flag_cursor <<= 1);
 final long FREE_SLOT_24 = (flag_cursor <<= 1);
 final long FREE_SLOT_25 = (flag_cursor <<= 1);
 final long FREE_SLOT_26 = (flag_cursor <<= 1);

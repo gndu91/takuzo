@@ -4,35 +4,32 @@ class Bubble {
   float y;
   float timeout;
   float timestamp;
+  float fade_after;
   String[] message;
   Bubble next;
 }
 
-void init_bubbles() {
-  bubbles = new ArrayList<Bubble>();
-}
-
-Bubble new_bubble(float x, float y, String...lignes) {
+Bubble new_bubble(PVector pos, String...lignes) {
   Bubble bulle = new Bubble();
-  bulle.x = x;
-  bulle.y = y;
+  bulle.x = pos.x;
+  bulle.y = pos.y;
   bulle.message = lignes;
   bulle.timestamp = millis();
   bulle.timeout = millis() + 5000;
+  bulle.fade_after = millis() + 2500;
   return bulle;
 }
 
 ArrayList<Bubble> bubbles;
 
-void put_bubble(float x, float y, String...lignes) {
-  bubbles.add(new_bubble(x, y, lignes));
+void put_bubble(PVector pos, String...lignes) {
+  bubbles.add(new_bubble(pos, lignes));
 }
 
 void put_bubble(int index, String message) {
-  float x = map(index % courante.taille, 0 - 0.5, courante.taille - 0.5, dimensions_grille_x * dimEcran()[0], (dimensions_grille_x + dimensions_grille_w) * dimEcran()[0]);
-  float y = map(index % courante.taille, 0 - 0.5, courante.taille - 0.5, dimensions_grille_y * height, (dimensions_grille_y + dimensions_grille_h) * height);
-  put_bubble(x, y, message);
+  put_bubble(centreDeCase(index), message);
 }
+
 int TEXT_SIZE = 16;
 
 
@@ -47,8 +44,8 @@ void drawBubbles() {
     
     
     int alpha = 255;
-    if(map(millis(), bulle.timestamp, bulle.timeout, 0, 100) > 50) {
-      alpha = 255 - (int) map(millis(), bulle.timestamp, bulle.timeout, 0, 255);
+    if(millis() > bulle.fade_after) {
+      alpha = 255 - (int) map(millis(), bulle.fade_after, bulle.timeout, 0, 255);
     }
     
     fill(#ffffff, alpha);
