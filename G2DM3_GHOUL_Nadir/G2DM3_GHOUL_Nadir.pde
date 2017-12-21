@@ -150,7 +150,7 @@ void settings() {
 void setup() {
   init();
   /// @see https://processing.github.io/processing-javadocs/core/processing/core/PSurface.html
-  changeState(true);
+  setState(FLAG_RESIZABLE, true);
   surface.setTitle("Takuzo");
   //////////////////////////////////
   setState(VIEW_GAME, true);
@@ -706,6 +706,9 @@ ArrayList<Grille> chargerGrilles(String path, String prefix) {
   /// Je joins les deux dossiers, pour cela je m'assure d'avoir des chaines de caractères, puis je joins les bouts
   prefix = java.nio.file.Paths.get((path == null) ? "" : path, (prefix == null) ? "" : prefix).toAbsolutePath().toString();
 
+  /// On remplace les séparaeurs en / pour linux et \\ pour windows entre autres
+  prefix = prefix.replace('/', java.io.File.separator.charAt(0));
+  prefix = prefix.replace('\\', java.io.File.separator.charAt(0));
 
   Grille grille = null;
   int index = 1;
